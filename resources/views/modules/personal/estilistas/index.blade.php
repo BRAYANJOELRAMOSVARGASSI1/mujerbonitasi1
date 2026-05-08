@@ -28,7 +28,7 @@
                     <div class="col-md-3">
                         <select name="especialidad" class="form-select" style="border:1px solid #dee2e6; border-radius:8px; padding:0.75rem;">
                             <option value="">Todas las especialidades</option>
-                            @foreach(\App\Modules\PersonalClientes\Models\Estilista::ESPECIALIDADES as $esp)
+                            @foreach(\App\Modules\P2_GestionPersonalClientes\Models\Estilista::ESPECIALIDADES as $esp)
                                 <option value="{{ $esp }}" {{ request('especialidad') == $esp ? 'selected' : '' }}>{{ $esp }}</option>
                             @endforeach
                         </select>
