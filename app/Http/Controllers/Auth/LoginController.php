@@ -10,6 +10,7 @@ use App\Models\User;
 
 class LoginController extends Controller
 {
+    // [CU21] - Cerrar Sesión (Heredado de AuthenticatesUsers)
     use AuthenticatesUsers;
 
     protected $redirectTo = '/home';
@@ -20,15 +21,16 @@ class LoginController extends Controller
         $this->middleware('auth')->only('logout');
     }
 
+    /**
+     * [CU20] - Iniciar Sesión
+     * [CU06] - Control de Seguridad y Política de Bloqueo
+     */
     public function login(Request $request)
     {
         // Validar que no haya campos vacíos (mensaje en español neutro se configura aquí)
         $request->validate([
             $this->username() => 'required|string',
             'password' => 'required|string',
-        ], [
-            $this->username().'.required' => 'El campo correo es obligatorio.',
-            'password.required' => 'El campo contraseña es obligatorio.',
         ]);
 
         $user = User::where($this->username(), $request->{$this->username()})->first();

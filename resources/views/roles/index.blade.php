@@ -11,7 +11,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 style="margin:0; font-weight:600;">{{ __('Gestión de Roles') }}</h5>
-                            <small style="opacity:0.9;">Administra los roles del sistema</small>
+                            <small style="opacity:0.7;">p1-gestion de usuario y seguridad | CU2 — Definir Roles y Permisos</small>
                         </div>
                         <a href="{{ route('roles.create') }}" class="btn" 
                            style="background-color:#CC5CB8; color:white; border:none; border-radius:8px; padding:8px 16px; font-weight:500;">

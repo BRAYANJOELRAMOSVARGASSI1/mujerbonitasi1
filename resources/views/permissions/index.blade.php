@@ -4,7 +4,10 @@
     <div class="card mb-4" style="border:none; border-radius:12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
         <div class="card-header d-flex justify-content-between align-items-center">
 
-            <h5 style="margin:0; font-weight:600;">Gestión de Permisos</h5>
+            <div>
+                <h5 style="margin:0; font-weight:600;">Gestión de Permisos</h5>
+                <small style="opacity:0.7;">p1-gestion de usuario y seguridad | CU2 — Definir Roles y Permisos</small>
+            </div>
             <a href="{{ route('permissions.create') }}" class="btn"
                 style="background-color:#CC5CB8; color:white; border:none; border-radius:8px; padding:8px 16px; font-weight:500;">
                 <svg class="icon me-2">

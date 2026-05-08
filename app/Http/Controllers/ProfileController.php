@@ -7,6 +7,9 @@ use App\Http\Requests\ProfileUpdateRequest;
 
 class ProfileController extends Controller
 {
+    /**
+     * [CU04] - Gestión de Perfil de Usuario
+     */
     public function show()
     {
         return view('auth.profile');

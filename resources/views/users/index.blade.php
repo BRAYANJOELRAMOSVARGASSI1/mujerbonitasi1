@@ -9,7 +9,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 style="margin:0; font-weight:600;">{{ __('Lista de Usuarios') }}</h5>
-                            <small style="opacity:0.9;">Administra los usuarios del sistema</small>
+                            <small style="opacity:0.7;">p1-gestion de usuario y seguridad | CU1 — Gestionar Usuarios</small>
                         </div>
                         <button type="button" class="btn"
                                 style="background-color:#CC5CB8; color:white; border:none; border-radius:8px; padding:8px 16px; font-weight:500;"
