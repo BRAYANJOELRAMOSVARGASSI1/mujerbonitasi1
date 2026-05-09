@@ -1,89 +1,194 @@
-MANUAL
+# MUJER BONITA — Sistema de Gestión para Salón de Belleza
+
+> Sistema web profesional para la gestión integral de un salón de belleza, construido con **Laravel 11** y arquitectura de **monolito modular**.
+
+---
+
+## 🚀 Inicio Rápido
+
+```bash
+# 1. Instalar dependencias PHP
 composer install
+
+# 2. Instalar dependencias JS
 npm install
-npm run build
+
+# 3. Configurar entorno
 cp .env.example .env
 php artisan key:generate
-php artisan migrate
+
+# 4. Base de datos
 php artisan migrate:fresh --seed
-php artisan db:seed
-php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
-php artisan storage:link
 
-rm -rf public/build
-npm install
-npm run dev   # o npm run build
-php artisan optimize:clear
+# 5. Compilar assets
+npm run build          # Producción
+# o
+npm run dev            # Desarrollo (hot reload)
 
+# 6. Iniciar servidor
+php artisan serve
+```
 
+---
 
+## 📋 Credenciales de Prueba
 
+| Correo | Rol | Contraseña |
+|---|---|---|
+| trabajodt1c0@gmail.com | super-admin | Password123 |
+| joetoe250@gmail.com | admin | Password123 |
+| ramosvargabrayan@gmail.com | recepcionista | Password123 |
+| joelramostrbj@gmail.com | estilista | Password123 |
+| fitgo61@gmail.com | estilista | Password123 |
+| ramosvargasbrayanjoel66@gmail.com | cliente | Password123 |
+| etsech67@gmail.com | cliente | Password123 |
+| xdreicarlos@gmail.com | cliente | Password123 |
+| si2psicologiaproy@gmail.com | cliente | Password123 |
 
+---
 
+## 🏗 Arquitectura del Proyecto
 
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Este sistema usa una **arquitectura de monolito modular** con Laravel. Los módulos se encuentran organizados dentro de `app/Modules/` y cada uno sigue el patrón MVC con carpetas propias de `Controllers`, `Models`, `Routes` y `Requests`.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+### Estructura de Carpetas
 
-## About Laravel
+```
+magy-makeup/                          ← Raíz del proyecto Laravel
+├── app/                              ← 🔧 BACKEND (Lógica del servidor)
+│   ├── Console/                      │  Comandos artisan personalizados
+│   ├── Http/                         │  Controladores globales
+│   │   ├── Controllers/
+│   │   │   ├── Auth/                 │  Login, Register, Password Reset
+│   │   │   ├── HomeController.php    │  Dashboard principal
+│   │   │   └── ProfileController.php │  Perfil de usuario
+│   │   └── Requests/                 │  Form Requests globales
+│   ├── Models/                       │  Modelos globales (User, ActivityLog)
+│   ├── Modules/                      │  ⭐ MÓDULOS DEL NEGOCIO
+│   │   ├── P1_GestionUsuarioSeguridad/
+│   │   │   ├── Controllers/          │  UserController, RoleController, PermissionController
+│   │   │   ├── Models/               │  (Usa App\Models\User global)
+│   │   │   ├── Policies/             │  Políticas de autorización
+│   │   │   ├── Requests/             │  Validaciones específicas
+│   │   │   └── Routes/web.php        │  Rutas del módulo P1
+│   │   ├── P2_GestionPersonalClientes/
+│   │   │   ├── Controllers/          │  ClienteController, EstilistaController, HorarioController
+│   │   │   ├── Models/               │  Cliente, Estilista, Horario
+│   │   │   ├── Requests/
+│   │   │   └── Routes/web.php
+│   │   ├── P3_GestionInventarioHerramientas/
+│   │   │   ├── Controllers/          │  ProductoController, HerramientaController
+│   │   │   ├── Models/               │  Producto, Herramienta
+│   │   │   ├── Requests/
+│   │   │   └── Routes/web.php
+│   │   ├── P4_GestionServiciosCitas/
+│   │   │   ├── Controllers/          │  ServicioController
+│   │   │   ├── Models/               │  Servicio
+│   │   │   ├── Requests/
+│   │   │   └── Routes/web.php
+│   │   ├── P5_PagosFacturacion/      │  (Pendiente — Ciclo 3)
+│   │   └── P6_ReportesComunicaciones/ │  (Pendiente — Ciclo 3)
+│   ├── Policies/                     │  Políticas de autorización globales
+│   └── Providers/
+│       ├── AppServiceProvider.php    │  Provider principal de Laravel
+│       └── ModuleServiceProvider.php │  ⭐ Carga automática de rutas modulares
+│
+├── config/                           ← Configuración de Laravel
+│   ├── app.php                       │  Nombre, timezone, locale
+│   ├── auth.php                      │  Guards de autenticación
+│   ├── database.php                  │  Conexión BD (MySQL)
+│   ├── permission.php                │  Configuración Spatie Permission
+│   └── ...
+│
+├── database/                         ← 🗃 BASE DE DATOS
+│   ├── migrations/                   │  Esquemas de tablas
+│   ├── seeders/
+│   │   ├── DatabaseSeeder.php        │  Seeder principal (orquestador)
+│   │   ├── UserSeeder.php            │  Roles, permisos y usuarios base
+│   │   ├── RolesSeeder.php           │  Roles básicos
+│   │   └── TestDatabaseSeeder.php    │  ⭐ Credenciales reales + datos prueba
+│   └── factories/
+│
+├── resources/                        ← 🎨 FRONTEND (Vistas y assets)
+│   ├── views/
+│   │   ├── auth/                     │  Login, Register, Password Reset, Profile
+│   │   ├── layouts/
+│   │   │   ├── app.blade.php         │  Layout principal (sidebar + header)
+│   │   │   ├── guest.blade.php       │  Layout para páginas públicas
+│   │   │   └── navigation.blade.php  │  Menú lateral con módulos P1-P4
+│   │   ├── modules/
+│   │   │   ├── personal/             │  Vistas de Clientes, Estilistas, Horarios
+│   │   │   ├── inventario/           │  Vistas de Productos, Herramientas, Stock
+│   │   │   ├── servicios/            │  Vistas de Servicios
+│   │   │   ├── pagos/                │  (Pendiente — Ciclo 3)
+│   │   │   └── reportes/             │  (Pendiente — Ciclo 3)
+│   │   ├── users/                    │  CRUD usuarios, bitácora, roles
+│   │   ├── roles/                    │  CRUD roles
+│   │   ├── permissions/              │  CRUD permisos
+│   │   ├── home.blade.php            │  Dashboard
+│   │   └── welcome.blade.php         │  Landing page pública
+│   ├── css/                          │  Estilos CSS
+│   ├── js/                           │  JavaScript (app.js)
+│   └── sass/                         │  SCSS compilado con Vite
+│
+├── routes/
+│   ├── web.php                       │  Rutas globales (welcome, auth, perfil)
+│   └── console.php                   │  Comandos artisan
+│
+├── public/                           ← 📁 Archivos públicos
+│   ├── build/                        │  Assets compilados (Vite)
+│   ├── icons/                        │  Iconos CoreUI (SVG)
+│   ├── images/                       │  Imágenes estáticas
+│   ├── js/                           │  JS compilados (coreui.bundle)
+│   └── index.php                     │  Entry point
+│
+├── storage/                          ← Almacenamiento Laravel
+├── tests/                            ← Tests automatizados
+├── vendor/                           ← Dependencias Composer
+├── node_modules/                     ← Dependencias NPM
+│
+├── .env                              ← Variables de entorno (NO subir a Git)
+├── .env.example                      ← Plantilla de variables
+├── composer.json                     ← Dependencias PHP
+├── package.json                      ← Dependencias JS
+├── vite.config.js                    ← Configuración Vite
+├── tailwind.config.js                ← Configuración TailwindCSS
+│
+├── create_ec2.php                    ← Script AWS: crear instancia EC2
+├── create_rds.php                    ← Script AWS: crear base de datos RDS
+├── check_infra_status.php            ← Script AWS: verificar infraestructura
+├── setup_server.sh                   ← Script bash: configurar servidor Linux
+└── deploy_ciclo2.tar.gz              ← Paquete de despliegue Ciclo 2
+```
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🔐 Seguridad
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Contraseñas fuertes**: Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número
+- **Bloqueo de cuentas**: Tras 5 intentos fallidos (clientes se bloquean permanentemente)
+- **Bitácora de auditoría**: Registro de todas las acciones con IP y navegador
+- **Roles y permisos**: Sistema granular con Spatie Laravel Permission
+- **Hashing**: Bcrypt con 12 rondas
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 📦 Tecnologías
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+| Tecnología | Versión | Uso |
+|---|---|---|
+| PHP | ^8.2 | Lenguaje principal |
+| Laravel | ^11.9 | Framework backend |
+| Laravel UI | ^4.5 | Scaffolding de auth |
+| Spatie Permission | ^6.10 | Roles y permisos |
+| MySQL | 8.0 | Base de datos |
+| Vite | — | Bundler de assets |
+| CoreUI | — | Tema del dashboard |
+| TailwindCSS | CDN | Landing page |
+| AWS SDK PHP | ^3.379 | Infraestructura cloud |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 📄 Licencia
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Proyecto académico — Sistema de Información II (SI2)

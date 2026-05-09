@@ -7,42 +7,41 @@ use App\Models\User;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 class RegisterController extends Controller
 {
     /*
     |--------------------------------------------------------------------------
-    | Register Controller
+    | Register Controller — Sistema MUJER BONITA
     |--------------------------------------------------------------------------
     |
-    | This controller handles the registration of new users as well as their
-    | validation and creation. By default this controller uses a trait to
-    | provide this functionality without requiring any additional code.
+    | Maneja el registro de nuevos usuarios públicos (rol: cliente).
+    | Aplica validación de contraseñas seguras:
+    |   • Mínimo 8 caracteres
+    |   • Al menos 1 letra mayúscula
+    |   • Al menos 1 letra minúscula
+    |   • Al menos 1 número
     |
     */
 
     use RegistersUsers;
 
     /**
-     * Where to redirect users after registration.
-     *
-     * @var string
+     * Redirección tras registro exitoso.
      */
     protected $redirectTo = '/home';
-    // protected $redirectTo = '/users';
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('guest');
     }
 
     /**
-     * Get a validator for an incoming registration request.
+     * Validación avanzada para registro de nuevos usuarios.
+     *
+     * Regla de contraseña: Password::min(8)->letters()->mixedCase()->numbers()
+     * Garantiza seguridad mínima profesional.
      *
      * @param  array  $data
      * @return \Illuminate\Contracts\Validation\Validator
@@ -50,24 +49,47 @@ class RegisterController extends Controller
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers(),
+            ],
+        ], [
+            // Mensajes personalizados en español
+            'name.required'       => 'El nombre es obligatorio.',
+            'email.required'      => 'El correo electrónico es obligatorio.',
+            'email.email'         => 'Ingresa un correo electrónico válido.',
+            'email.unique'        => 'Este correo electrónico ya está registrado.',
+            'password.required'   => 'La contraseña es obligatoria.',
+            'password.confirmed'  => 'Las contraseñas no coinciden.',
+            'password.min'        => 'La contraseña debe tener al menos 8 caracteres.',
         ]);
     }
 
     /**
-     * Create a new user instance after a valid registration.
+     * Crea el usuario y le asigna automáticamente el rol 'cliente'.
      *
      * @param  array  $data
      * @return \App\Models\User
      */
     protected function create(array $data)
     {
-        return User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
             'password' => Hash::make($data['password']),
+            'status'   => 'activo',
         ]);
+
+        // Asignar rol cliente automáticamente al registrarse
+        $user->assignRole('cliente');
+
+        return $user;
     }
 }

@@ -10,7 +10,8 @@ use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash; 
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password; 
 
 class UserController extends Controller
 {
@@ -40,9 +41,22 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                Password::min(8)->letters()->mixedCase()->numbers(),
+            ],
+        ], [
+            'name.required'      => 'El nombre es obligatorio.',
+            'email.required'     => 'El correo electrónico es obligatorio.',
+            'email.email'        => 'Ingresa un correo electrónico válido.',
+            'email.unique'       => 'Este correo electrónico ya está registrado.',
+            'password.required'  => 'La contraseña es obligatoria.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+            'password.min'       => 'La contraseña debe tener al menos 8 caracteres.',
         ]);
 
         $user = User::create([
@@ -73,9 +87,21 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'password' => [
+                'nullable',
+                'string',
+                'confirmed',
+                Password::min(8)->letters()->mixedCase()->numbers(),
+            ],
+        ], [
+            'name.required'      => 'El nombre es obligatorio.',
+            'email.required'     => 'El correo electrónico es obligatorio.',
+            'email.email'        => 'Ingresa un correo electrónico válido.',
+            'email.unique'       => 'Este correo electrónico ya está registrado.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+            'password.min'       => 'La contraseña debe tener al menos 8 caracteres.',
         ]);
 
         $updateData = [
