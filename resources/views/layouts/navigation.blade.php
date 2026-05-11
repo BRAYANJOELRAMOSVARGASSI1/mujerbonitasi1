@@ -58,6 +58,14 @@
 
     @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista']) || auth()->user()->can('ver clientes')))
         <li class="nav-item">
+            <a class="nav-link" href="{{ route('recepcionistas.index') }}">
+                <svg class="nav-icon">
+                    <use xlink:href="{{ asset('icons/coreui.svg#cil-user') }}"></use>
+                </svg>
+                Recepcionistas
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link" href="{{ route('clientes.index') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-people') }}"></use></svg>
                 {{ __('Clientes') }}
@@ -111,7 +119,7 @@
     {{-- ═══════════════════════════════════════════════════ --}}
     {{-- P4 — GESTIÓN DE SERVICIOS Y CITAS                 --}}
     {{-- ═══════════════════════════════════════════════════ --}}
-    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin']) || auth()->user()->can('ver servicios')))
+    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'cliente']) || auth()->user()->can('ver servicios')))
     <li class="nav-title" style="color:#CC5CB8; font-weight:600; font-size:0.7rem; letter-spacing:1px; margin-top:1rem;">p4-gestion de servicios y citas</li>
 
         <li class="nav-item">

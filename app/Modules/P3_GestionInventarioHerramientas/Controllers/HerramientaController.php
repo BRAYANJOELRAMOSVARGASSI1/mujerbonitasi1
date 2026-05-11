@@ -74,8 +74,9 @@ class HerramientaController extends Controller
     public function edit(Herramienta $herramienta)
     {
         $categorias = Herramienta::CATEGORIAS;
+        $estados    = Herramienta::ESTADOS;
         $areas      = Herramienta::AREAS;
-        return view('modules.inventario.herramientas.edit', compact('herramienta', 'categorias', 'areas'));
+        return view('modules.inventario.herramientas.edit', compact('herramienta', 'categorias', 'estados', 'areas'));
     }
 
     public function update(Request $request, Herramienta $herramienta)

@@ -112,6 +112,11 @@ class UserSeeder extends Seeder
             'ver servicios',
         ]);
 
+        // Cliente: solo consulta de servicios
+        $roleCliente->syncPermissions([
+            'ver servicios',
+        ]);
+
         // ═══════════════════════════════════════════════════
         // 6. USUARIOS INICIALES
         // ═══════════════════════════════════════════════════

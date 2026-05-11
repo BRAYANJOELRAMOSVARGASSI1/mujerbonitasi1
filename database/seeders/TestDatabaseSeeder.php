@@ -35,6 +35,7 @@ class TestDatabaseSeeder extends Seeder
         $this->seedProductos();
         $this->seedHerramientas();
         $this->seedEstilistas();
+        $this->seedRecepcionistas();
         $this->seedClientes();
         $this->seedServicios();
 
@@ -347,6 +348,50 @@ class TestDatabaseSeeder extends Seeder
                 ])
             );
             $this->command->info("   ✓ Estilista enlazado: {$data['nombre']} {$data['apellido']} ({$email})");
+        }
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════
+     * 4.5 PERFILES DE RECEPCIONISTAS (P2)
+     * ═══════════════════════════════════════════════════
+     */
+    private function seedRecepcionistas(): void
+    {
+        $this->command->info('');
+        $this->command->info('👤 Enlazando perfiles de recepcionistas...');
+
+        $modelClass = 'App\\Modules\\P2_GestionPersonalClientes\\Models\\Recepcionista';
+
+        if (!class_exists($modelClass)) {
+            $this->command->warn('   ⚠ Modelo Recepcionista no encontrado. Saltando...');
+            return;
+        }
+
+        $recepcionistasData = [
+            'ramosvargabrayan@gmail.com' => [
+                'nombre'   => 'Brayan Joel',
+                'apellido' => 'Ramos Vargas',
+                'telefono' => '78945612',
+                'email'    => 'ramosvargabrayan@gmail.com',
+            ],
+        ];
+
+        foreach ($recepcionistasData as $email => $data) {
+            $user = User::where('email', $email)->first();
+            if (!$user) {
+                $this->command->warn("   ⚠ Usuario {$email} no encontrado para recepcionista. Saltando...");
+                continue;
+            }
+
+            $modelClass::firstOrCreate(
+                ['user_id' => $user->id],
+                array_merge($data, [
+                    'fecha_contratacion' => now()->subYear()->toDateString(),
+                    'estado'             => 'activo',
+                ])
+            );
+            $this->command->info("   ✓ Recepcionista enlazada: {$data['nombre']} {$data['apellido']} ({$email})");
         }
     }
 

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Modules\P2_GestionPersonalClientes\Controllers\ClienteController;
 use App\Modules\P2_GestionPersonalClientes\Controllers\EstilistaController;
 use App\Modules\P2_GestionPersonalClientes\Controllers\HorarioController;
+use App\Modules\P2_GestionPersonalClientes\Controllers\RecepcionistaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +18,9 @@ use App\Modules\P2_GestionPersonalClientes\Controllers\HorarioController;
 |--------------------------------------------------------------------------
 */
 
-Route::resource('clientes', ClienteController::class);
-Route::resource('estilistas', EstilistaController::class);
-Route::resource('horarios', HorarioController::class)->except(['show']);
+Route::middleware(['auth'])->group(function () {
+    Route::resource('clientes', ClienteController::class);
+    Route::resource('estilistas', EstilistaController::class);
+    Route::resource('recepcionistas', RecepcionistaController::class);
+    Route::resource('horarios', HorarioController::class)->except(['show']);
+});

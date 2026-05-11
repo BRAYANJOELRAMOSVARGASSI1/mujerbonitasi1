@@ -12,7 +12,7 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('ver usuarios');
+        return $user->hasAnyRole(['admin', 'super-admin']) || $user->can('ver usuarios');
     }
 
     /**
@@ -20,7 +20,7 @@ class UserPolicy
      */
     public function view(User $user, User $model): bool
     {
-        //
+        return $user->hasAnyRole(['admin', 'super-admin']) || $user->id === $model->id || $user->can('ver usuarios');
     }
 
     /**
@@ -28,7 +28,7 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('crear usuarios');
+        return $user->hasAnyRole(['admin', 'super-admin']) || $user->can('crear usuarios');
     }
 
     /**
@@ -36,7 +36,7 @@ class UserPolicy
      */
     public function update(User $user, User $model): bool
     {
-        // return $user->can('editar usuarios');
+        return $user->hasAnyRole(['admin', 'super-admin']) || $user->id === $model->id || $user->can('editar usuarios');
     }
 
     /**
@@ -44,7 +44,12 @@ class UserPolicy
      */
     public function delete(User $user, User $model): bool
     {
-        //
+        // El super-admin no puede ser eliminado por nadie
+        if ($model->hasRole('super-admin')) {
+            return false;
+        }
+
+        return $user->hasAnyRole(['admin', 'super-admin']) || $user->can('eliminar usuarios');
     }
 
     /**
@@ -52,7 +57,7 @@ class UserPolicy
      */
     public function restore(User $user, User $model): bool
     {
-        //
+        return $user->hasAnyRole(['admin', 'super-admin']);
     }
 
     /**
@@ -60,6 +65,6 @@ class UserPolicy
      */
     public function forceDelete(User $user, User $model): bool
     {
-        //
+        return $user->hasRole('super-admin');
     }
 }
