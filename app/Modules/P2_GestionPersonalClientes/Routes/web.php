@@ -22,5 +22,8 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('clientes', ClienteController::class);
     Route::resource('estilistas', EstilistaController::class);
     Route::resource('recepcionistas', RecepcionistaController::class);
+    
+    // CU23 - Consultar Horarios (Vista Visual)
+    Route::get('horarios/consultar', [HorarioController::class, 'consultar'])->name('horarios.consultar');
     Route::resource('horarios', HorarioController::class)->except(['show']);
 });

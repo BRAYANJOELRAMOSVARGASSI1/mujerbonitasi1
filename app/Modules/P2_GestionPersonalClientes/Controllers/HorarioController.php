@@ -8,6 +8,7 @@ use App\Modules\P2_GestionPersonalClientes\Models\Estilista;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 /**
  * [CU22] — Gestionar Horarios
@@ -42,6 +43,62 @@ class HorarioController extends Controller
         $diasSemana = Horario::DIAS_SEMANA;
 
         return view('modules.personal.horarios.index', compact('horarios', 'estilistas', 'diasSemana'));
+    }
+
+    /**
+     * [CU23] Vista de Calendario Visual.
+     */
+    public function consultar(Request $request)
+    {
+        $user = Auth::user();
+        
+        // 1. Lógica de Fechas (Semana)
+        $dateStr = $request->get('date', Carbon::now()->toDateString());
+        $currentDate = Carbon::parse($dateStr);
+        $startOfWeek = $currentDate->copy()->startOfWeek(Carbon::MONDAY);
+        $endOfWeek = $currentDate->copy()->endOfWeek(Carbon::SUNDAY);
+        
+        // 2. Filtros por Rol
+        $queryEstilistas = Estilista::activos()->orderBy('nombre');
+        
+        if ($user->hasRole('estilista')) {
+            // El estilista solo se ve a sí mismo
+            $estilistaId = Estilista::where('user_id', $user->id)->value('id');
+            $queryEstilistas->where('id', $estilistaId);
+            $selectedEstilistaId = $estilistaId;
+        } else {
+            // Admin y Recepcionista ven a todos
+            $selectedEstilistaId = $request->get('estilista_id');
+        }
+
+        $estilistas = $queryEstilistas->get();
+
+        // 3. Obtener Horarios
+        $horarios = Horario::with('estilista')
+            ->activos()
+            ->when($selectedEstilistaId, fn($q) => $q->where('estilista_id', $selectedEstilistaId))
+            ->get();
+
+        // 4. Registrar en Bitácora
+        ActivityLog::create([
+            'user_id'    => Auth::id(),
+            'action'     => 'Consulta de Horarios',
+            'description'=> "Consultó el calendario semanal para la fecha {$dateStr}",
+            'ip_address' => $request->ip() ?? 'No disponible',
+            'browser'    => $request->header('user-agent') ?? 'No disponible',
+        ]);
+
+        $diasSemana = Horario::DIAS_SEMANA;
+
+        return view('modules.personal.horarios.consultar', compact(
+            'estilistas', 
+            'horarios', 
+            'startOfWeek', 
+            'endOfWeek', 
+            'currentDate',
+            'diasSemana',
+            'selectedEstilistaId'
+        ));
     }
 
     /**

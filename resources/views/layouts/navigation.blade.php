@@ -89,7 +89,13 @@
         <li class="nav-item">
             <a class="nav-link" href="{{ route('horarios.index') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-calendar') }}"></use></svg>
-                {{ __('Horarios') }}
+                {{ __('Horarios (Gestión)') }}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('horarios.consultar') }}">
+                <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-list') }}"></use></svg>
+                {{ __('Consultar Disponibilidad') }}
             </a>
         </li>
     @endif

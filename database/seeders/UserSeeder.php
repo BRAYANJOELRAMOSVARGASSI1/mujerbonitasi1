@@ -112,9 +112,10 @@ class UserSeeder extends Seeder
             'ver servicios',
         ]);
 
-        // Cliente: solo consulta de servicios
+        // Cliente: solo consulta de servicios y disponibilidad
         $roleCliente->syncPermissions([
             'ver servicios',
+            'ver horarios',
         ]);
 
         // ═══════════════════════════════════════════════════
