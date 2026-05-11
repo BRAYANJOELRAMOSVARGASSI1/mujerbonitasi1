@@ -101,7 +101,7 @@
     <li class="nav-title" style="color:#CC5CB8; font-weight:600; font-size:0.7rem; letter-spacing:1px; margin-top:1rem;">p3-gestion de inventario y herramientas</li>
     @endif
 
-    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin']) || auth()->user()->can('ver productos')))
+    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista']) || auth()->user()->can('ver productos')))
         <li class="nav-item">
             <a class="nav-link" href="{{ route('productos.index') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-basket') }}"></use></svg>

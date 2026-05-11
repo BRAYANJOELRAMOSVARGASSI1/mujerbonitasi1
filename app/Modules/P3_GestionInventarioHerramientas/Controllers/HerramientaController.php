@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\Auth;
 
 class HerramientaController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:ver herramientas')->only(['index', 'show']);
+        $this->middleware('permission:crear herramientas')->only(['create', 'store']);
+        $this->middleware('permission:editar herramientas')->only(['edit', 'update']);
+        $this->middleware('permission:eliminar herramientas')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $herramientas = Herramienta::query()

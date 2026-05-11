@@ -10,9 +10,11 @@
                     </h5>
                     <small style="opacity:0.7;">p2-gestion de personal y clientes | CU22 — Gestionar Horarios | CU23 — Consultar Horarios</small>
                 </div>
+                @can('crear horarios')
                 <a href="{{ route('horarios.create') }}" class="btn" style="background-color:#CC5CB8; color:white; border:none; border-radius:8px; padding:8px 16px; font-weight:500;">
                     <svg class="icon me-2"><use xlink:href="{{ asset('icons/coreui.svg#cil-plus') }}"></use></svg>Nuevo Horario
                 </a>
+                @endcan
             </div>
         </div>
         <div class="card-body" style="background-color:#f8f9fa; padding:1.5rem;">
@@ -59,15 +61,19 @@
                             <td>{{ $h->hora_fin }}</td>
                             <td>
                                 <div class="d-flex gap-1">
+                                    @can('editar horarios')
                                     <a href="{{ route('horarios.edit', $h) }}" class="btn btn-sm" style="background-color:#ffc107; color:#212529; border:none; border-radius:6px; padding:4px 10px;">
                                         <svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-pencil') }}"></use></svg>
                                     </a>
+                                    @endcan
+                                    @can('eliminar horarios')
                                     <form method="POST" action="{{ route('horarios.destroy', $h) }}" onsubmit="return confirm('¿Eliminar este horario?')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm" style="background-color:#dc3545; color:white; border:none; border-radius:6px; padding:4px 10px;">
                                             <svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-trash') }}"></use></svg>
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>
@@ -78,7 +84,9 @@
             @else
                 <div class="text-center py-5">
                     <h5 style="color:#495057;">No hay horarios registrados</h5>
+                    @can('crear horarios')
                     <a href="{{ route('horarios.create') }}" class="btn" style="background-color:#CC5CB8; color:white; border:none; border-radius:8px; padding:10px 20px;">Crear primer horario</a>
+                    @endcan
                 </div>
             @endif
         </div>

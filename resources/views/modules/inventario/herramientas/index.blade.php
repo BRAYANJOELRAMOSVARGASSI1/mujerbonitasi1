@@ -10,9 +10,11 @@
                     </h5>
                     <small style="opacity:0.7;">p3-gestion de inventario y herramientas | CU7 — Registrar Herramienta | CU13 — Consultar Herramientas</small>
                 </div>
+                @can('crear herramientas')
                 <a href="{{ route('herramientas.create') }}" class="btn" style="background-color:#CC5CB8; color:white; border:none; border-radius:8px; padding:8px 16px; font-weight:500;">
                     <svg class="icon me-2"><use xlink:href="{{ asset('icons/coreui.svg#cil-plus') }}"></use></svg>Nueva Herramienta
                 </a>
+                @endcan
             </div>
         </div>
         <div class="card-body" style="background-color:#f8f9fa; padding:1.5rem;">
@@ -62,10 +64,14 @@
                             <td>
                                 <div class="d-flex gap-1">
                                     <a href="{{ route('herramientas.show', $h) }}" class="btn btn-sm" style="background-color:#17a2b8; color:white; border:none; border-radius:6px; padding:4px 10px;"><svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-eye') }}"></use></svg></a>
-                                    <a href="{{ route('herramientas.edit', $h) }}" class="btn btn-sm" style="background-color:#ffc107; color:#212529; border:none; border-radius:6px; padding:4px 10px;"><svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-pencil') }}"></use></svg></a>
+                                    @can('editar herramientas')
+                                    <a href="{{ route('herramientas.edit', $h) }}" class="btn btn-sm" style="background-color:#ffc107; color:#212529; border:none; border-radius:6px; padding:4px 10px;"><svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons#cil-pencil') }}"></use></svg></a>
+                                    @endcan
+                                    @can('eliminar herramientas')
                                     <form method="POST" action="{{ route('herramientas.destroy', $h) }}" onsubmit="return confirm('¿Eliminar?')">@csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm" style="background-color:#dc3545; color:white; border:none; border-radius:6px; padding:4px 10px;"><svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-trash') }}"></use></svg></button>
+                                        <button type="submit" class="btn btn-sm" style="background-color:#dc3545; color:white; border:none; border-radius:6px; padding:4px 10px;"><svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons#cil-trash') }}"></use></svg></button>
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

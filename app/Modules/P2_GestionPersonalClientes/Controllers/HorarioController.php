@@ -15,6 +15,14 @@ use Illuminate\Support\Facades\Auth;
  */
 class HorarioController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:ver horarios')->only(['index', 'show']);
+        $this->middleware('permission:crear horarios')->only(['create', 'store']);
+        $this->middleware('permission:editar horarios')->only(['edit', 'update']);
+        $this->middleware('permission:eliminar horarios')->only(['destroy']);
+    }
+
     /**
      * [CU23] Consultar horarios con filtros.
      */
