@@ -10,9 +10,11 @@
                     </h5>
                     <small style="opacity:0.7;">p4-gestion de servicios y citas | CU11 — Gestionar Servicios</small>
                 </div>
+                @can('crear servicios')
                 <a href="{{ route('servicios.create') }}" class="btn" style="background-color:#CC5CB8; color:white; border:none; border-radius:8px; padding:8px 16px; font-weight:500;">
                     <svg class="icon me-2"><use xlink:href="{{ asset('icons/coreui.svg#cil-plus') }}"></use></svg>Nuevo Servicio
                 </a>
+                @endcan
             </div>
         </div>
         <div class="card-body" style="background-color:#f8f9fa; padding:1.5rem;">
@@ -69,10 +71,16 @@
                                 <div class="card-footer" style="background-color:#f8f9fa; border:none; border-radius:0 0 12px 12px; padding:0.75rem 1.5rem;">
                                     <div class="d-flex gap-2">
                                         <a href="{{ route('servicios.show', $srv) }}" class="btn btn-sm" style="background-color:#17a2b8; color:white; border:none; border-radius:6px; padding:4px 10px;"><svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-eye') }}"></use></svg> Ver</a>
+                                        
+                                        @can('editar servicios')
                                         <a href="{{ route('servicios.edit', $srv) }}" class="btn btn-sm" style="background-color:#ffc107; color:#212529; border:none; border-radius:6px; padding:4px 10px;"><svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-pencil') }}"></use></svg> Editar</a>
+                                        @endcan
+
+                                        @can('eliminar servicios')
                                         <form method="POST" action="{{ route('servicios.destroy', $srv) }}" onsubmit="return confirm('¿Eliminar?')">@csrf @method('DELETE')
                                             <button type="submit" class="btn btn-sm" style="background-color:#dc3545; color:white; border:none; border-radius:6px; padding:4px 10px;"><svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-trash') }}"></use></svg></button>
                                         </form>
+                                        @endcan
                                     </div>
                                 </div>
                             </div>

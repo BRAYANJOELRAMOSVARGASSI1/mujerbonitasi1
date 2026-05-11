@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\Auth;
 
 class ServicioController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:ver servicios')->only(['index', 'show']);
+        $this->middleware('permission:crear servicios')->only(['create', 'store']);
+        $this->middleware('permission:editar servicios')->only(['edit', 'update']);
+        $this->middleware('permission:eliminar servicios')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $servicios = Servicio::query()
