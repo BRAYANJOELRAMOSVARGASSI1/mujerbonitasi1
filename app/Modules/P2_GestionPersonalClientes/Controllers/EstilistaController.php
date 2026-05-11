@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\Auth;
  */
 class EstilistaController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:crear estilistas')->only(['create', 'store']);
+        $this->middleware('permission:editar estilistas')->only(['edit', 'update']);
+        $this->middleware('permission:eliminar estilistas')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $estilistas = Estilista::query()

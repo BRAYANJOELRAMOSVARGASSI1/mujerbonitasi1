@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\Auth;
  */
 class RecepcionistaController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:crear usuarios')->only(['create', 'store']);
+        $this->middleware('permission:editar usuarios')->only(['edit', 'update']);
+        $this->middleware('permission:eliminar usuarios')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $recepcionistas = Recepcionista::query()
