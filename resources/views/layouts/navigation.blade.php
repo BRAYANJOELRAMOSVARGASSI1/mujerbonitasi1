@@ -56,7 +56,7 @@
     <li class="nav-title" style="color:#CC5CB8; font-weight:600; font-size:0.7rem; letter-spacing:1px; margin-top:1rem;">p2-gestion de personal y clientes</li>
     @endif
 
-    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista']) || auth()->user()->can('ver clientes')))
+    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin'])))
         <li class="nav-item">
             <a class="nav-link" href="{{ route('recepcionistas.index') }}">
                 <svg class="nav-icon">
@@ -65,6 +65,9 @@
                 Recepcionistas
             </a>
         </li>
+    @endif
+
+    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista']) || auth()->user()->can('ver clientes')))
         <li class="nav-item">
             <a class="nav-link" href="{{ route('clientes.index') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-people') }}"></use></svg>
