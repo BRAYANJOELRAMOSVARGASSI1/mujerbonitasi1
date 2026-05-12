@@ -145,7 +145,6 @@ class HorarioController extends Controller
         ]);
 
         return back()->with('status', 'Trabajo finalizado correctamente.');
-    }nte.');
     }
 
     /**
