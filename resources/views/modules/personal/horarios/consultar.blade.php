@@ -18,11 +18,11 @@
                     <button onclick="window.print()" class="btn btn-outline-secondary rounded-pill px-3">
                         <svg class="icon me-1"><use xlink:href="{{ asset('icons/coreui.svg#cil-print') }}"></use></svg> Exportar PDF
                     </button>
-                    @unless(Auth::user()->hasRole('estilista'))
+                    @if(auth()->check() && auth()->user()->hasAnyRole(['admin', 'super-admin']))
                     <a href="{{ route('horarios.index') }}" class="btn btn-primary rounded-pill px-3" style="background:#CC5CB8; border:none;">
                         <svg class="icon me-1"><use xlink:href="{{ asset('icons/coreui.svg#cil-settings') }}"></use></svg> Gestionar Turnos
                     </a>
-                    @endunless
+                    @endif
                 </div>
             </div>
 
