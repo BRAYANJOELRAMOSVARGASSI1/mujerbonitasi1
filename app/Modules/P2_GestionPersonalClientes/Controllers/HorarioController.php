@@ -46,6 +46,7 @@ class HorarioController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $estilistas = Estilista::activos()->orderBy('nombre')->get();
         $diasSemana = Horario::DIAS_SEMANA;
 
         return view('modules.personal.horarios.index', compact('horarios', 'estilistas', 'diasSemana'));

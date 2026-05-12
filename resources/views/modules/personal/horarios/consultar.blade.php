@@ -264,10 +264,18 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modalBody').innerHTML = html;
         
         let actionsHtml = '';
+        
+        // Botón Agendar Cita: Visible para Recepcionista y Admin (y Cliente si aplica)
         if (status === 'status-available' && !{{ Auth::user()->hasRole('estilista') ? 'true' : 'false' }}) {
-            actionsHtml = '<button class="btn btn-primary rounded-pill px-4">Agendar Cita</button>';
+            actionsHtml += '<button class="btn btn-primary rounded-pill px-4 me-2">Agendar Cita</button>';
         }
 
+        // Botón Gestionar Turno: SOLO para Admin
+        if ({{ Auth::user()->hasAnyRole(['admin', 'super-admin']) ? 'true' : 'false' }}) {
+            actionsHtml += `<a href="{{ route('horarios.index') }}" class="btn btn-outline-dark rounded-pill px-4">Gestionar Turnos</a>`;
+        }
+
+        // Botón Finalizar Trabajo: Solo para Estilista en citas activas
         if (status === 'status-occupied' && {{ Auth::user()->hasRole('estilista') ? 'true' : 'false' }} && detail.estado !== 'completada') {
             actionsHtml = `
                 <form action="{{ url('horarios/citas') }}/${detail.id}/finalizar" method="POST">

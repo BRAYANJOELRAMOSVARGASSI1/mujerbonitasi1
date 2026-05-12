@@ -117,7 +117,7 @@
                                                 </form>
                                                 @endcan
                                            
-                                                @can('roles')
+                                                @can('ver roles')
                                                 <button type="button" class="btn btn-sm" 
                                                         style="background-color:#CC5CB8; color:white; border:none; border-radius:6px; padding:6px 12px; font-size:0.875rem;"
                                                         data-coreui-toggle="modal" data-coreui-target="#rolesModal"
