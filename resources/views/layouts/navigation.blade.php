@@ -84,8 +84,8 @@
         </li>
     @endif
 
-    {{-- Horarios Gestión (Solo Admin y Recepcionista) --}}
-    @if(auth()->check() && auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista']))
+    {{-- Horarios Gestión (Solo Admin) --}}
+    @if(auth()->check() && auth()->user()->hasAnyRole(['admin', 'super-admin']))
         <li class="nav-item">
             <a class="nav-link" href="{{ route('horarios.index') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-calendar') }}"></use></svg>
