@@ -85,13 +85,16 @@
         </li>
     @endif
 
-    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista', 'estilista']) || auth()->user()->can('ver horarios')))
+    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista']) || auth()->user()->can('ver horarios')))
         <li class="nav-item">
             <a class="nav-link" href="{{ route('horarios.index') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-calendar') }}"></use></svg>
                 {{ __('Horarios (Gestión)') }}
             </a>
         </li>
+    @endif
+
+    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista', 'estilista']) || auth()->user()->can('ver horarios')))
         <li class="nav-item">
             <a class="nav-link" href="{{ route('horarios.consultar') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-list') }}"></use></svg>

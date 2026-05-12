@@ -29,13 +29,19 @@ class HorarioController extends Controller
      */
     public function index(Request $request)
     {
-        $estilistas = Estilista::activos()->orderBy('nombre')->get();
-
-        $horarios = Horario::with('estilista')
+        $user = Auth::user();
+        $query = Horario::with('estilista')
             ->when($request->filled('estilista_id'), fn($q) => $q->where('estilista_id', $request->estilista_id))
             ->when($request->filled('dia_semana'), fn($q) => $q->where('dia_semana', $request->dia_semana))
-            ->activos()
-            ->orderByRaw("FIELD(dia_semana, 'lunes','martes','miercoles','jueves','viernes','sabado','domingo')")
+            ->activos();
+
+        // Restricción por Rol: El estilista solo ve sus propios horarios en la gestión
+        if ($user->hasRole('estilista')) {
+            $estilistaId = Estilista::where('user_id', $user->id)->value('id');
+            $query->where('estilista_id', $estilistaId);
+        }
+
+        $horarios = $query->orderByRaw("FIELD(dia_semana, 'lunes','martes','miercoles','jueves','viernes','sabado','domingo')")
             ->orderBy('hora_inicio')
             ->paginate(15)
             ->withQueryString();
@@ -62,24 +68,34 @@ class HorarioController extends Controller
         $queryEstilistas = Estilista::activos()->orderBy('nombre');
         
         if ($user->hasRole('estilista')) {
-            // El estilista solo se ve a sí mismo
             $estilistaId = Estilista::where('user_id', $user->id)->value('id');
             $queryEstilistas->where('id', $estilistaId);
             $selectedEstilistaId = $estilistaId;
         } else {
-            // Admin y Recepcionista ven a todos
             $selectedEstilistaId = $request->get('estilista_id');
         }
 
         $estilistas = $queryEstilistas->get();
 
-        // 3. Obtener Horarios
+        // 3. Obtener Horarios Base
         $horarios = Horario::with('estilista')
             ->activos()
             ->when($selectedEstilistaId, fn($q) => $q->where('estilista_id', $selectedEstilistaId))
             ->get();
 
-        // 4. Registrar en Bitácora
+        // 4. Obtener Excepciones (Vacaciones/Permisos)
+        $excepciones = \App\Modules\P2_GestionPersonalClientes\Models\HorarioExcepcion::activos()
+            ->whereBetween('fecha', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
+            ->when($selectedEstilistaId, fn($q) => $q->where('estilista_id', $selectedEstilistaId))
+            ->get();
+
+        // 5. Obtener Citas Reales (P4)
+        $citas = \App\Modules\P4_GestionServiciosCitas\Models\Cita::with(['cliente', 'servicio'])
+            ->whereBetween('fecha', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
+            ->when($selectedEstilistaId, fn($q) => $q->where('estilista_id', $selectedEstilistaId))
+            ->get();
+
+        // 6. Registrar en Bitácora
         ActivityLog::create([
             'user_id'    => Auth::id(),
             'action'     => 'Consulta de Horarios',
@@ -93,12 +109,43 @@ class HorarioController extends Controller
         return view('modules.personal.horarios.consultar', compact(
             'estilistas', 
             'horarios', 
+            'excepciones',
+            'citas',
             'startOfWeek', 
             'endOfWeek', 
             'currentDate',
             'diasSemana',
             'selectedEstilistaId'
         ));
+    }
+
+    /**
+     * [CU24] Cambiar estado de una cita (Finalizar trabajo).
+     */
+    public function finalizarCita(Request $request, $id)
+    {
+        $cita = \App\Modules\P4_GestionServiciosCitas\Models\Cita::findOrFail($id);
+        
+        // Validación de seguridad básica
+        if (Auth::user()->hasRole('estilista')) {
+            $estilistaId = Estilista::where('user_id', Auth::id())->value('id');
+            if ($cita->estilista_id != $estilistaId) {
+                return back()->with('error', 'No puedes finalizar una cita que no te corresponde.');
+            }
+        }
+
+        $cita->update(['estado' => 'completada']);
+
+        ActivityLog::create([
+            'user_id'    => Auth::id(),
+            'action'     => 'Cita Finalizada',
+            'description'=> "Se marcó como completada la cita #{$cita->id} de {$cita->cliente->nombre_completo}",
+            'ip_address' => $request->ip() ?? 'No disponible',
+            'browser'    => $request->header('user-agent') ?? 'No disponible',
+        ]);
+
+        return back()->with('status', 'Trabajo finalizado correctamente.');
+    }nte.');
     }
 
     /**

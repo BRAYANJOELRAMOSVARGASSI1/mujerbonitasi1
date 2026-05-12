@@ -38,6 +38,7 @@ class TestDatabaseSeeder extends Seeder
         $this->seedRecepcionistas();
         $this->seedClientes();
         $this->seedServicios();
+        $this->seedCitas();
 
         $this->command->info('');
         $this->command->info('✅ Todos los datos de prueba fueron creados correctamente.');
@@ -514,5 +515,68 @@ class TestDatabaseSeeder extends Seeder
             );
             $this->command->info("   ✓ Servicio: {$data['nombre']}");
         }
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════
+     * 7. CITAS DE PRUEBA (P4)
+     * ═══════════════════════════════════════════════════
+     */
+    private function seedCitas(): void
+    {
+        $this->command->info('');
+        $this->command->info('📅 Creando citas de prueba...');
+
+        $modelCita = 'App\\Modules\\P4_GestionServiciosCitas\\Models\\Cita';
+        $modelEstilista = 'App\\Modules\\P2_GestionPersonalClientes\\Models\\Estilista';
+        $modelCliente = 'App\\Modules\\P2_GestionPersonalClientes\\Models\\Cliente';
+        $modelServicio = 'App\\Modules\\P4_GestionServiciosCitas\\Models\\Servicio';
+
+        $estilista = $modelEstilista::first();
+        $cliente = $modelCliente::first();
+        $servicio = $modelServicio::where('nombre', 'Corte de Cabello')->first();
+
+        if (!$estilista || !$cliente || !$servicio) {
+            $this->command->warn('   ⚠ Faltan datos para crear citas. Saltando...');
+            return;
+        }
+
+        $citas = [
+            [
+                'cliente_id'   => $cliente->id,
+                'estilista_id' => $estilista->id,
+                'servicio_id'  => $servicio->id,
+                'fecha'        => now()->toDateString(),
+                'hora_inicio'  => '10:00:00',
+                'hora_fin'     => '11:00:00',
+                'precio_total' => $servicio->precio,
+                'estado'       => 'pendiente',
+                'notas'        => 'Cliente puntual, prefiere tijera.',
+            ],
+            [
+                'cliente_id'   => $modelCliente::skip(1)->first()->id ?? $cliente->id,
+                'estilista_id' => $estilista->id,
+                'servicio_id'  => $modelServicio::where('nombre', 'Maquillaje Profesional')->first()->id ?? $servicio->id,
+                'fecha'        => now()->toDateString(),
+                'hora_inicio'  => '14:00:00',
+                'hora_fin'     => '15:30:00',
+                'precio_total' => 150.00,
+                'estado'       => 'en_curso',
+                'notas'        => 'Maquillaje para evento de noche.',
+            ]
+        ];
+
+        foreach ($citas as $data) {
+            $modelCita::firstOrCreate(
+                [
+                    'estilista_id' => $data['estilista_id'],
+                    'fecha'        => $data['fecha'],
+                    'hora_inicio'  => $data['hora_inicio']
+                ],
+                $data
+            );
+        }
+
+        $this->command->info('   ✓ Citas de prueba creadas correctamente.');
     }
 }

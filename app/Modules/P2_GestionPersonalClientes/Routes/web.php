@@ -25,5 +25,6 @@ Route::middleware(['auth'])->group(function () {
     
     // CU23 - Consultar Horarios (Vista Visual)
     Route::get('horarios/consultar', [HorarioController::class, 'consultar'])->name('horarios.consultar');
+    Route::post('horarios/citas/{id}/finalizar', [HorarioController::class, 'finalizarCita'])->name('horarios.finalizar-cita');
     Route::resource('horarios', HorarioController::class)->except(['show']);
 });
