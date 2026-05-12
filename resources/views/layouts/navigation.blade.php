@@ -7,9 +7,8 @@
     </li>
 
     {{-- ═══════════════════════════════════════════════════ --}}
-    {{-- P1 — GESTIÓN DE USUARIOS Y SEGURIDAD              --}}
-    {{-- ═══════════════════════════════════════════════════ --}}
-    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin']) || auth()->user()->canAny(['ver usuarios', 'ver roles', 'ver permisos', 'ver bitacora'])))
+    {{-- P1 — GESTIÓN DE USUARIOS Y SEGURIDAD (Solo Admin) --}}
+    @if(auth()->check() && auth()->user()->hasAnyRole(['admin', 'super-admin']))
     <li class="nav-title" style="color:#CC5CB8; font-weight:600; font-size:0.7rem; letter-spacing:1px; margin-top:1rem;">p1-gestion de usuario y seguridad</li>
     @endif
 
@@ -85,7 +84,8 @@
         </li>
     @endif
 
-    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista']) || auth()->user()->can('ver horarios')))
+    {{-- Horarios Gestión (Solo Admin y Recepcionista) --}}
+    @if(auth()->check() && auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista']))
         <li class="nav-item">
             <a class="nav-link" href="{{ route('horarios.index') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-calendar') }}"></use></svg>
@@ -119,7 +119,8 @@
         </li>
     @endif
 
-    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista', 'estilista']) || auth()->user()->can('ver herramientas')))
+    {{-- Herramientas (Estilista puede ver, Cliente NO) --}}
+    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista', 'estilista'])))
         <li class="nav-item">
             <a class="nav-link" href="{{ route('herramientas.index') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-settings') }}"></use></svg>
