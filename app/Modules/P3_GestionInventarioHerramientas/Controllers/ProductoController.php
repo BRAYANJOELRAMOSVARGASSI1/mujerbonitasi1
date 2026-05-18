@@ -38,32 +38,34 @@ class ProductoController extends Controller
     public function create()
     {
         $categorias = Producto::CATEGORIAS;
-        $unidades   = Producto::UNIDADES;
+        $unidades = Producto::UNIDADES;
         return view('modules.inventario.productos.create', compact('categorias', 'unidades'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'nombre'        => ['required', 'string', 'max:150'],
-            'descripcion'   => ['nullable', 'string', 'max:1000'],
-            'categoria'     => ['required', 'string', 'max:80'],
-            'marca'         => ['nullable', 'string', 'max:100'],
+            'nombre' => ['required', 'string', 'max:150'],
+            'descripcion' => ['nullable', 'string', 'max:1000'],
+            'categoria' => ['required', 'string', 'max:80'],
+            'marca' => ['nullable', 'string', 'max:100'],
+            'ubicacion' => ['nullable', 'string', 'max:150'],
             'precio_compra' => ['required', 'numeric', 'min:0'],
-            'precio_venta'  => ['nullable', 'numeric', 'min:0'],
-            'stock_actual'  => ['required', 'integer', 'min:0'],
-            'stock_minimo'  => ['required', 'integer', 'min:0'],
+            'precio_venta' => ['nullable', 'numeric', 'min:0'],
+            'stock_actual' => ['required', 'integer', 'min:0'],
+            'stock_minimo' => ['required', 'integer', 'min:0'],
+            'stock_maximo' => ['required', 'integer', 'min:0'], // atributo stock maximo
             'unidad_medida' => ['nullable', 'string', 'max:30'],
         ]);
 
         $producto = Producto::create($data);
 
         ActivityLog::create([
-            'user_id'    => Auth::id(),
-            'action'     => 'Registro de producto',
-            'description'=> "Producto registrado: {$producto->nombre} (Cat: {$producto->categoria}, Stock: {$producto->stock_actual})",
+            'user_id' => Auth::id(),
+            'action' => 'Registro de producto',
+            'description' => "Producto registrado: {$producto->nombre} (Cat: {$producto->categoria}, Stock: {$producto->stock_actual})",
             'ip_address' => $request->ip() ?? 'No disponible',
-            'browser'    => $request->header('user-agent') ?? 'No disponible',
+            'browser' => $request->header('user-agent') ?? 'No disponible',
         ]);
 
         return redirect()->route('productos.index')->with('status', 'Producto registrado correctamente.');
@@ -77,33 +79,35 @@ class ProductoController extends Controller
     public function edit(Producto $producto)
     {
         $categorias = Producto::CATEGORIAS;
-        $unidades   = Producto::UNIDADES;
+        $unidades = Producto::UNIDADES;
         return view('modules.inventario.productos.edit', compact('producto', 'categorias', 'unidades'));
     }
 
     public function update(Request $request, Producto $producto)
     {
         $data = $request->validate([
-            'nombre'        => ['required', 'string', 'max:150'],
-            'descripcion'   => ['nullable', 'string', 'max:1000'],
-            'categoria'     => ['required', 'string', 'max:80'],
-            'marca'         => ['nullable', 'string', 'max:100'],
+            'nombre' => ['required', 'string', 'max:150'],
+            'descripcion' => ['nullable', 'string', 'max:1000'],
+            'categoria' => ['required', 'string', 'max:80'],
+            'marca' => ['nullable', 'string', 'max:100'],
+            'ubicacion' => ['nullable', 'string', 'max:150'],
             'precio_compra' => ['required', 'numeric', 'min:0'],
-            'precio_venta'  => ['nullable', 'numeric', 'min:0'],
-            'stock_actual'  => ['required', 'integer', 'min:0'],
-            'stock_minimo'  => ['required', 'integer', 'min:0'],
+            'precio_venta' => ['nullable', 'numeric', 'min:0'],
+            'stock_actual' => ['required', 'integer', 'min:0'],
+            'stock_minimo' => ['required', 'integer', 'min:0'],
+            'stock_maximo' => ['required', 'integer', 'min:0'], // adicion de atributo stock maximo
             'unidad_medida' => ['nullable', 'string', 'max:30'],
-            'estado'        => ['nullable', 'in:activo,inactivo'],
+            'estado' => ['nullable', 'in:activo,inactivo'],
         ]);
 
         $producto->update($data);
 
         ActivityLog::create([
-            'user_id'    => Auth::id(),
-            'action'     => 'Actualización de producto',
-            'description'=> "Producto actualizado: {$producto->nombre} (Stock: {$producto->stock_actual})",
+            'user_id' => Auth::id(),
+            'action' => 'Actualización de producto',
+            'description' => "Producto actualizado: {$producto->nombre} (Stock: {$producto->stock_actual})",
             'ip_address' => $request->ip() ?? 'No disponible',
-            'browser'    => $request->header('user-agent') ?? 'No disponible',
+            'browser' => $request->header('user-agent') ?? 'No disponible',
         ]);
 
         return redirect()->route('productos.index')->with('status', 'Producto actualizado correctamente.');
@@ -115,11 +119,11 @@ class ProductoController extends Controller
         $producto->delete();
 
         ActivityLog::create([
-            'user_id'    => Auth::id(),
-            'action'     => 'Eliminación de producto',
-            'description'=> "Producto eliminado: {$nombre}",
+            'user_id' => Auth::id(),
+            'action' => 'Eliminación de producto',
+            'description' => "Producto eliminado: {$nombre}",
             'ip_address' => $request->ip() ?? 'No disponible',
-            'browser'    => $request->header('user-agent') ?? 'No disponible',
+            'browser' => $request->header('user-agent') ?? 'No disponible',
         ]);
 
         return redirect()->route('productos.index')->with('status', 'Producto eliminado correctamente.');

@@ -64,6 +64,30 @@ class Estilista extends Model
     }
 
     /**
+     * Relación: Estilista tiene muchas citas.
+     */
+    public function citas()
+    {
+        return $this->hasMany(\App\Modules\P4_GestionServiciosCitas\Models\Cita::class);
+    }
+
+    /**
+     * Relación: Estilista tiene muchos servicios realizados.
+     */
+    public function serviciosRealizados()
+    {
+        return $this->hasMany(\App\Modules\P4_GestionServiciosCitas\Models\ServicioRealizado::class);
+    }
+
+    /**
+     * Relación: Estilista tiene muchas comisiones.
+     */
+    public function comisiones()
+    {
+        return $this->hasMany(\App\Modules\P5_PagosFacturacion\Models\Comision::class);
+    }
+
+    /**
      * Scope para filtrar solo activos.
      */
     public function scopeActivos($query)

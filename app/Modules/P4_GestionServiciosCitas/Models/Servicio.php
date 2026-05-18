@@ -61,4 +61,38 @@ class Servicio extends Model
     {
         return $query->where('estado', 'activo');
     }
+
+    /**
+     * Relación: Servicios tiene muchas citas.
+     */
+    public function citas()
+    {
+        return $this->hasMany(Cita::class);
+    }
+
+    /**
+     * Relación: Servicio pertenece a muchas promociones.
+     */
+    public function promociones()
+    {
+        return $this->belongsToMany(
+            Promocion::class,
+            'promocion_servicio',
+            'servicio_id',
+            'promocion_id'
+        );
+    }
+
+    /**
+     * Obtiene la mejor promoción vigente para este servicio.
+     */
+    public function getMejorPromocionAttribute()
+    {
+        return $this->promociones()
+            ->where('estado', 'activa')
+            ->where('fecha_inicio', '<=', now())
+            ->where('fecha_fin', '>=', now())
+            ->orderByDesc('porcentaje_descuento')
+            ->first();
+    }
 }

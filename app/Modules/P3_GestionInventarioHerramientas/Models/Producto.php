@@ -16,17 +16,19 @@ class Producto extends Model
         'descripcion',
         'categoria',
         'marca',
+        'ubicacion',
         'precio_compra',
         'precio_venta',
         'stock_actual',
         'stock_minimo',
+        'stock_maximo', //  de atributo stock maximo
         'unidad_medida',
         'estado',
     ];
 
     protected $casts = [
         'precio_compra' => 'decimal:2',
-        'precio_venta'  => 'decimal:2',
+        'precio_venta' => 'decimal:2',
     ];
 
     /**
@@ -48,11 +50,11 @@ class Producto extends Model
      */
     public const UNIDADES = [
         'unidad' => 'Unidad',
-        'ml'     => 'Mililitros (ml)',
-        'gr'     => 'Gramos (gr)',
-        'litro'  => 'Litro',
-        'caja'   => 'Caja',
-        'paquete'=> 'Paquete',
+        'ml' => 'Mililitros (ml)',
+        'gr' => 'Gramos (gr)',
+        'litro' => 'Litro',
+        'caja' => 'Caja',
+        'paquete' => 'Paquete',
     ];
 
     /**

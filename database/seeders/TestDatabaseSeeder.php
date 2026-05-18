@@ -38,7 +38,10 @@ class TestDatabaseSeeder extends Seeder
         $this->seedRecepcionistas();
         $this->seedClientes();
         $this->seedServicios();
+        $this->seedHorarios();
         $this->seedCitas();
+        $this->seedPromociones();
+        $this->seedServiciosRealizados();
 
         $this->command->info('');
         $this->command->info('✅ Todos los datos de prueba fueron creados correctamente.');
@@ -578,5 +581,152 @@ class TestDatabaseSeeder extends Seeder
         }
 
         $this->command->info('   ✓ Citas de prueba creadas correctamente.');
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════
+     * 7.5 HORARIOS BASE PARA ESTILISTAS (P2)
+     * ═══════════════════════════════════════════════════
+     */
+    private function seedHorarios(): void
+    {
+        $this->command->info('');
+        $this->command->info('🕐 Creando horarios de prueba...');
+
+        $modelHorario = 'App\\Modules\\P2_GestionPersonalClientes\\Models\\Horario';
+        $modelEstilista = 'App\\Modules\\P2_GestionPersonalClientes\\Models\\Estilista';
+
+        if (!class_exists($modelHorario) || !class_exists($modelEstilista)) {
+            $this->command->warn('   ⚠ Modelo Horario/Estilista no encontrado. Saltando...');
+            return;
+        }
+
+        $estilistas = $modelEstilista::all();
+        $dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+
+        foreach ($estilistas as $est) {
+            foreach ($dias as $dia) {
+                $modelHorario::firstOrCreate(
+                    ['estilista_id' => $est->id, 'dia_semana' => $dia, 'hora_inicio' => '08:00:00', 'hora_fin' => '12:00:00'],
+                    ['estado' => 'activo']
+                );
+                $modelHorario::firstOrCreate(
+                    ['estilista_id' => $est->id, 'dia_semana' => $dia, 'hora_inicio' => '14:00:00', 'hora_fin' => '20:00:00'],
+                    ['estado' => 'activo']
+                );
+            }
+            $this->command->info("   ✓ Horarios creados para: {$est->nombre_completo}");
+        }
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════
+     * 8. PROMOCIONES DE PRUEBA (C3 - CU24)
+     * ═══════════════════════════════════════════════════
+     */
+    private function seedPromociones(): void
+    {
+        $this->command->info('');
+        $this->command->info('🎉 Creando promociones de prueba...');
+
+        $modelPromo = 'App\\Modules\\P4_GestionServiciosCitas\\Models\\Promocion';
+        $modelServicio = 'App\\Modules\\P4_GestionServiciosCitas\\Models\\Servicio';
+
+        if (!class_exists($modelPromo) || !class_exists($modelServicio)) {
+            $this->command->warn('   ⚠ Modelo Promocion no encontrado. Saltando...');
+            return;
+        }
+
+        $promociones = [
+            [
+                'nombre' => 'Promo Fin de Semana',
+                'descripcion' => '20% de descuento en servicios de cabello los fines de semana.',
+                'porcentaje_descuento' => 20.00,
+                'fecha_inicio' => now()->startOfMonth()->toDateString(),
+                'fecha_fin' => now()->endOfMonth()->toDateString(),
+                'servicios' => ['Corte de Cabello', 'Tinte y Coloración'],
+            ],
+            [
+                'nombre' => 'Paquete Novia',
+                'descripcion' => '15% de descuento en maquillaje y manicure para novias.',
+                'porcentaje_descuento' => 15.00,
+                'fecha_inicio' => now()->subDays(10)->toDateString(),
+                'fecha_fin' => now()->addMonths(2)->toDateString(),
+                'servicios' => ['Maquillaje Profesional', 'Manicure Gel'],
+            ],
+            [
+                'nombre' => 'Descuento Pedicure Spa',
+                'descripcion' => '10% de descuento en pedicure durante el mes.',
+                'porcentaje_descuento' => 10.00,
+                'fecha_inicio' => now()->startOfMonth()->toDateString(),
+                'fecha_fin' => now()->endOfMonth()->toDateString(),
+                'servicios' => ['Pedicure Spa'],
+            ],
+        ];
+
+        foreach ($promociones as $data) {
+            $promo = $modelPromo::firstOrCreate(
+                ['nombre' => $data['nombre']],
+                [
+                    'descripcion' => $data['descripcion'],
+                    'porcentaje_descuento' => $data['porcentaje_descuento'],
+                    'fecha_inicio' => $data['fecha_inicio'],
+                    'fecha_fin' => $data['fecha_fin'],
+                    'estado' => 'activa',
+                ]
+            );
+
+            $servicioIds = $modelServicio::whereIn('nombre', $data['servicios'])->pluck('id')->toArray();
+            $promo->servicios()->syncWithoutDetaching($servicioIds);
+
+            $this->command->info("   ✓ Promoción: {$data['nombre']} ({$data['porcentaje_descuento']}%)");
+        }
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════
+     * 9. SERVICIOS REALIZADOS DE PRUEBA (C3 - CU14/CU25)
+     * ═══════════════════════════════════════════════════
+     */
+    private function seedServiciosRealizados(): void
+    {
+        $this->command->info('');
+        $this->command->info('✅ Creando servicios realizados de prueba...');
+
+        $modelRealizado = 'App\\Modules\\P4_GestionServiciosCitas\\Models\\ServicioRealizado';
+        $modelCita = 'App\\Modules\\P4_GestionServiciosCitas\\Models\\Cita';
+
+        if (!class_exists($modelRealizado)) {
+            $this->command->warn('   ⚠ Modelo ServicioRealizado no encontrado. Saltando...');
+            return;
+        }
+
+        // Buscar citas que podemos marcar como completadas
+        $citas = $modelCita::with(['estilista', 'servicio', 'cliente'])
+            ->whereDoesntHave('servicioRealizado')
+            ->whereIn('estado', ['pendiente', 'en_curso'])
+            ->take(2)
+            ->get();
+
+        foreach ($citas as $cita) {
+            $modelRealizado::firstOrCreate(
+                ['cita_id' => $cita->id],
+                [
+                    'estilista_id'          => $cita->estilista_id,
+                    'servicio_id'           => $cita->servicio_id,
+                    'cliente_id'            => $cita->cliente_id,
+                    'observaciones'         => 'Servicio completado satisfactoriamente. Cliente satisfecha.',
+                    'duracion_real_minutos' => $cita->servicio->duracion_minutos,
+                    'productos_utilizados'  => 'Shampoo Profesional, Acondicionador',
+                    'precio_cobrado'        => $cita->precio_total,
+                    'comision_porcentaje'   => $cita->estilista->porcentaje_comision,
+                    'comision_monto'        => round($cita->precio_total * $cita->estilista->porcentaje_comision / 100, 2),
+                    'fecha_realizacion'     => now(),
+                ]
+            );
+            $cita->update(['estado' => 'completada']);
+        }
+
+        $this->command->info('   ✓ Servicios realizados de prueba creados.');
     }
 }

@@ -71,7 +71,30 @@ class UserSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'eliminar servicios']);
 
         // ═══════════════════════════════════════════════════
-        // 5. ROLES
+        // 5. PERMISOS — Ciclo 3 (P4: Citas, Realizados, Promociones)
+        // ═══════════════════════════════════════════════════
+        Permission::firstOrCreate(['name' => 'ver citas']);
+        Permission::firstOrCreate(['name' => 'crear citas']);
+        Permission::firstOrCreate(['name' => 'editar citas']);
+        Permission::firstOrCreate(['name' => 'cancelar citas']);
+
+        Permission::firstOrCreate(['name' => 'ver servicios realizados']);
+        Permission::firstOrCreate(['name' => 'registrar servicio realizado']);
+
+        Permission::firstOrCreate(['name' => 'ver promociones']);
+        Permission::firstOrCreate(['name' => 'crear promociones']);
+        Permission::firstOrCreate(['name' => 'editar promociones']);
+        Permission::firstOrCreate(['name' => 'eliminar promociones']);
+
+        // ═══════════════════════════════════════════════════
+        // 6. PERMISOS — Ciclo 3 (P5: Comisiones)
+        // ═══════════════════════════════════════════════════
+        Permission::firstOrCreate(['name' => 'ver comisiones']);
+        Permission::firstOrCreate(['name' => 'calcular comisiones']);
+        Permission::firstOrCreate(['name' => 'aprobar comisiones']);
+
+        // ═══════════════════════════════════════════════════
+        // 7. ROLES
         // ═══════════════════════════════════════════════════
         $roleSuper    = Role::firstOrCreate(['name' => 'super-admin']);
         $roleAdmin    = Role::firstOrCreate(['name' => 'admin']);
@@ -93,9 +116,17 @@ class UserSeeder extends Seeder
             'ver herramientas', 'crear herramientas', 'editar herramientas', 'eliminar herramientas', 'consultar herramientas',
             // C2 - Servicios
             'ver servicios', 'crear servicios', 'editar servicios', 'eliminar servicios',
+            // C3 - Citas
+            'ver citas', 'crear citas', 'editar citas', 'cancelar citas',
+            // C3 - Servicios Realizados
+            'ver servicios realizados', 'registrar servicio realizado',
+            // C3 - Promociones
+            'ver promociones', 'crear promociones', 'editar promociones', 'eliminar promociones',
+            // C3 - Comisiones
+            'ver comisiones', 'calcular comisiones', 'aprobar comisiones',
         ]);
 
-        // Recepcionista: gestión de clientes, consultas
+        // Recepcionista: gestión de clientes, citas, consultas
         $roleRecep->syncPermissions([
             'ver clientes', 'crear clientes', 'editar clientes', 'buscar clientes',
             'ver estilistas',
@@ -103,19 +134,31 @@ class UserSeeder extends Seeder
             'ver productos', 'ver stock',
             'ver herramientas', 'consultar herramientas',
             'ver servicios',
+            // C3
+            'ver citas', 'crear citas', 'editar citas', 'cancelar citas',
+            'ver servicios realizados', 'registrar servicio realizado',
+            'ver promociones',
         ]);
 
-        // Estilista: solo consulta
+        // Estilista: ver horarios, registrar servicios, ver comisiones propias
         $roleEstilista->syncPermissions([
             'ver horarios',
             'ver herramientas', 'consultar herramientas',
             'ver servicios',
+            // C3
+            'ver citas',
+            'ver servicios realizados', 'registrar servicio realizado',
+            'ver promociones',
+            'ver comisiones',
         ]);
 
-        // Cliente: solo consulta de servicios y disponibilidad
+        // Cliente: ver servicios, agendar citas propias, ver promociones
         $roleCliente->syncPermissions([
             'ver servicios',
             'ver horarios',
+            // C3
+            'ver citas', 'crear citas', 'cancelar citas',
+            'ver promociones',
         ]);
 
         // ═══════════════════════════════════════════════════

@@ -18,11 +18,15 @@
                             @foreach($categorias as $cat)<option value="{{ $cat }}" {{ old('categoria', $producto->categoria) == $cat ? 'selected' : '' }}>{{ $cat }}</option>@endforeach
                         </select>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label class="form-label" style="color:#495057; font-weight:500;">Marca</label>
                         <input type="text" name="marca" class="form-control" value="{{ old('marca', $producto->marca) }}" style="border:1px solid #dee2e6; border-radius:8px; padding:0.75rem;">
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" style="color:#495057; font-weight:500;">Ubicación</label>
+                        <input type="text" name="ubicacion" class="form-control" value="{{ old('ubicacion', $producto->ubicacion) }}" style="border:1px solid #dee2e6; border-radius:8px; padding:0.75rem;">
+                    </div>
+                    <div class="col-md-4 mb-3">
                         <label class="form-label" style="color:#495057; font-weight:500;">Unidad de Medida</label>
                         <select name="unidad_medida" class="form-select" style="border:1px solid #dee2e6; border-radius:8px; padding:0.75rem;">
                             <option value="">Seleccionar...</option>
@@ -44,6 +48,12 @@
                     <div class="col-md-3 mb-3">
                         <label class="form-label" style="color:#495057; font-weight:500;">Stock Mínimo *</label>
                         <input type="number" name="stock_minimo" class="form-control" value="{{ old('stock_minimo', $producto->stock_minimo) }}" required style="border:1px solid #dee2e6; border-radius:8px; padding:0.75rem;">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <!-- adicion de atributo stock maximo -->
+                        <label class="form-label" style="color:#495057; font-weight:500;">Stock Máximo *</label>
+                        <input type="number" name="stock_maximo" class="form-control @error('stock_maximo') is-invalid @enderror" value="{{ old('stock_maximo', $producto->stock_maximo) }}" required style="border:1px solid #dee2e6; border-radius:8px; padding:0.75rem;">
+                        @error('stock_maximo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label" style="color:#495057; font-weight:500;">Estado</label>

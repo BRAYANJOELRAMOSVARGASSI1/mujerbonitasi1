@@ -132,13 +132,60 @@
     {{-- ═══════════════════════════════════════════════════ --}}
     {{-- P4 — GESTIÓN DE SERVICIOS Y CITAS                 --}}
     {{-- ═══════════════════════════════════════════════════ --}}
-    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'cliente']) || auth()->user()->can('ver servicios')))
+    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista', 'estilista', 'cliente']) || auth()->user()->canAny(['ver servicios', 'ver citas', 'ver promociones'])))
     <li class="nav-title" style="color:#CC5CB8; font-weight:600; font-size:0.7rem; letter-spacing:1px; margin-top:1rem;">p4-gestion de servicios y citas</li>
 
+        @can('ver servicios')
         <li class="nav-item">
             <a class="nav-link" href="{{ route('servicios.index') }}">
                 <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-cut') }}"></use></svg>
                 {{ __('Servicios') }}
+            </a>
+        </li>
+        @endcan
+
+        {{-- CU8 — Agendar Cita (Admin, Recepcionista, Cliente) --}}
+        @can('ver citas')
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('citas.index') }}">
+                <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-calendar') }}"></use></svg>
+                {{ __('Agendar Cita') }}
+            </a>
+        </li>
+        @endcan
+
+        {{-- CU14 — Servicios Realizados (Admin, Recepcionista, Estilista) --}}
+        @can('ver servicios realizados')
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('servicios-realizados.index') }}">
+                <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-check-circle') }}"></use></svg>
+                {{ __('Servicios Realizados') }}
+            </a>
+        </li>
+        @endcan
+
+        {{-- CU24 — Promociones (Todos pueden ver) --}}
+        @can('ver promociones')
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('promociones.index') }}">
+                <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-gift') }}"></use></svg>
+                {{ __('Promociones') }}
+            </a>
+        </li>
+        @endcan
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════ --}}
+    {{-- P5 — PAGOS Y FACTURACIÓN                          --}}
+    {{-- ═══════════════════════════════════════════════════ --}}
+    @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin']) || auth()->user()->can('ver comisiones')))
+    <li class="nav-title" style="color:#CC5CB8; font-weight:600; font-size:0.7rem; letter-spacing:1px; margin-top:1rem;">p5-pagos y facturación</li>
+
+        {{-- CU25 — Comisiones (Admin, Estilista ve las suyas) --}}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('comisiones.index') }}">
+                <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-wallet') }}"></use></svg>
+                {{ __('Comisiones') }}
             </a>
         </li>
     @endif

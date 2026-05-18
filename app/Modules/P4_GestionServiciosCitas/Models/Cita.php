@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Modules\P2_GestionPersonalClientes\Models\Cliente;
 use App\Modules\P2_GestionPersonalClientes\Models\Estilista;
+use App\Modules\P4_GestionServiciosCitas\Models\ServicioRealizado;
 
 class Cita extends Model
 {
@@ -59,5 +60,38 @@ class Cita extends Model
     public function scopeActivas($query)
     {
         return $query->whereIn('estado', ['pendiente', 'en_curso']);
+    }
+
+    /**
+     * Scope para filtrar citas completadas.
+     */
+    public function scopeCompletadas($query)
+    {
+        return $query->where('estado', 'completada');
+    }
+
+    /**
+     * Scope para filtrar citas pendientes de realización (para CU14).
+     */
+    public function scopePendienteRealizacion($query)
+    {
+        return $query->whereIn('estado', ['pendiente', 'en_curso'])
+            ->whereDoesntHave('servicioRealizado');
+    }
+
+    /**
+     * Relación: La cita tiene un registro de servicio realizado (CU14).
+     */
+    public function servicioRealizado()
+    {
+        return $this->hasOne(ServicioRealizado::class);
+    }
+
+    /**
+     * Verifica si la cita ya fue registrada como realizada.
+     */
+    public function getIsRealizadaAttribute(): bool
+    {
+        return $this->servicioRealizado !== null;
     }
 }
