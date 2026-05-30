@@ -19,7 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->bind(
+            \App\Modules\P5_PagosFacturacion\Contracts\PaymentGatewayInterface::class,
+            \App\Modules\P5_PagosFacturacion\Adapters\StripeAdapter::class
+        );
     }
 
     /**

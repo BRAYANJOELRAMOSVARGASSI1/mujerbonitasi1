@@ -1,14 +1,31 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use App\Modules\P6_ReportesComunicaciones\Controllers\ReportesController;
+
 /*
 |--------------------------------------------------------------------------
-| P6 — REPORTES, PROMOCIÓN Y COMUNICACIONES
+| P6 — REPORTES Y ANÁLISIS DEL NEGOCIO
 |--------------------------------------------------------------------------
-| CU15 — Generar Reporte de Servicios (pendiente C3)
-| CU16 — Generar Reporte de Ingresos (pendiente C3)
-| CU17 — Generar Reporte de Clientes (pendiente C3)
-| CU19 — Enviar Promociones por Email/WhatsApp (pendiente C3)
-|--------------------------------------------------------------------------
-| Las rutas de este módulo se implementarán en el Ciclo 3.
+| CU15 — Reporte de Servicios
+| CU16 — Reporte de Ingresos
+| CU17 — Reporte de Clientes
+| Acceso exclusivo: admin / super-admin
 |--------------------------------------------------------------------------
 */
+
+Route::prefix('reportes')->name('reportes.')->group(function () {
+
+    // Dashboard principal con filtros
+    Route::get('/', [ReportesController::class, 'index'])->name('index');
+
+    // Exportación PDF por tipo
+    Route::get('/pdf/{tipo}', [ReportesController::class, 'exportarPdf'])
+        ->name('pdf')
+        ->where('tipo', 'ventas|clientes|inventario|servicios|promociones|general');
+
+    // Exportación Excel por tipo
+    Route::get('/excel/{tipo}', [ReportesController::class, 'exportarExcel'])
+        ->name('excel')
+        ->where('tipo', 'ventas|clientes|inventario|servicios|promociones');
+});

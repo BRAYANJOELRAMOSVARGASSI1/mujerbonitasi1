@@ -1,0 +1,425 @@
+<?php
+
+namespace App\Modules\P6_ReportesComunicaciones\Controllers;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+
+// Modelos del sistema
+use App\Modules\P2_GestionPersonalClientes\Models\Cliente;
+use App\Modules\P2_GestionPersonalClientes\Models\Estilista;
+use App\Modules\P3_GestionInventarioHerramientas\Models\Producto;
+use App\Modules\P4_GestionServiciosCitas\Models\Cita;
+use App\Modules\P4_GestionServiciosCitas\Models\Servicio;
+use App\Modules\P4_GestionServiciosCitas\Models\ServicioRealizado;
+use App\Modules\P4_GestionServiciosCitas\Models\Promocion;
+use App\Modules\P5_PagosFacturacion\Models\Comision;
+
+// Export classes
+use App\Modules\P6_ReportesComunicaciones\Exports\VentasExport;
+use App\Modules\P6_ReportesComunicaciones\Exports\ClientesExport;
+use App\Modules\P6_ReportesComunicaciones\Exports\InventarioExport;
+use App\Modules\P6_ReportesComunicaciones\Exports\ServiciosExport;
+use App\Modules\P6_ReportesComunicaciones\Exports\PromocionesExport;
+
+/**
+ * ReportesController — P6
+ *
+ * Módulo de reportes y análisis del negocio.
+ * Acceso exclusivo para administradores del sistema.
+ */
+class ReportesController extends Controller
+{
+    /**
+     * Constructor: aplica middleware de roles.
+     */
+    public function __construct()
+    {
+        $this->middleware(['auth']);
+        $this->middleware(function ($request, $next) {
+            if (! auth()->user()->hasAnyRole(['admin', 'super-admin'])) {
+                abort(403, 'Solo los administradores pueden acceder a los reportes.');
+            }
+            return $next($request);
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // DASHBOARD PRINCIPAL
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Dashboard principal de reportes con KPIs y datos filtrados.
+     */
+    public function index(Request $request)
+    {
+        // Validar y obtener rango de fechas (default: mes actual)
+        $fechaInicio = $request->filled('fecha_inicio')
+            ? Carbon::parse($request->fecha_inicio)->startOfDay()
+            : Carbon::now()->startOfMonth();
+
+        $fechaFin = $request->filled('fecha_fin')
+            ? Carbon::parse($request->fecha_fin)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $estilistaId = $request->input('estilista_id');
+        $clienteId   = $request->input('cliente_id');
+
+        // ── KPIs GENERALES ──────────────────────────────────────
+        $kpis = $this->buildKpis($fechaInicio, $fechaFin);
+
+        // ── SECCIÓN VENTAS ───────────────────────────────────────
+        $ventas = $this->buildVentas($fechaInicio, $fechaFin, $estilistaId, $clienteId);
+
+        // ── SECCIÓN CLIENTES ─────────────────────────────────────
+        $clientes = $this->buildClientes($fechaInicio, $fechaFin);
+
+        // ── SECCIÓN INVENTARIO ───────────────────────────────────
+        $inventario = $this->buildInventario();
+
+        // ── SECCIÓN SERVICIOS & CITAS ────────────────────────────
+        $servicios = $this->buildServicios($fechaInicio, $fechaFin);
+
+        // ── SECCIÓN PROMOCIONES & COMISIONES ─────────────────────
+        $promociones = $this->buildPromociones($fechaInicio, $fechaFin);
+
+        // ── DATOS PARA FILTROS (selects) ─────────────────────────
+        $listaEstilistas = Estilista::activos()->orderBy('nombre')->get();
+        $listaClientes   = Cliente::activos()->orderBy('nombre')->get();
+
+        // ── DATOS PARA GRÁFICA (Chart.js) ────────────────────────
+        $graficaIngresosMes   = $this->graficaIngresosPorMes();
+        $graficaTopServicios  = $this->graficaTopServicios($fechaInicio, $fechaFin);
+        $graficaCitasEstado   = $this->graficaCitasPorEstado($fechaInicio, $fechaFin);
+
+        return view('modules.reportes.index', compact(
+            'kpis',
+            'ventas',
+            'clientes',
+            'inventario',
+            'servicios',
+            'promociones',
+            'listaEstilistas',
+            'listaClientes',
+            'graficaIngresosMes',
+            'graficaTopServicios',
+            'graficaCitasEstado',
+            'fechaInicio',
+            'fechaFin',
+            'estilistaId',
+            'clienteId'
+        ));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // EXPORTACIÓN PDF
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Exporta un reporte en PDF según el tipo solicitado.
+     */
+    public function exportarPdf(Request $request, string $tipo)
+    {
+        $fechaInicio = $request->filled('fecha_inicio')
+            ? Carbon::parse($request->fecha_inicio)->startOfDay()
+            : Carbon::now()->startOfMonth();
+
+        $fechaFin = $request->filled('fecha_fin')
+            ? Carbon::parse($request->fecha_fin)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $datos = match ($tipo) {
+            'ventas'      => $this->buildVentas($fechaInicio, $fechaFin),
+            'clientes'    => $this->buildClientes($fechaInicio, $fechaFin),
+            'inventario'  => $this->buildInventario(),
+            'servicios'   => $this->buildServicios($fechaInicio, $fechaFin),
+            'promociones' => $this->buildPromociones($fechaInicio, $fechaFin),
+            'general'     => $this->buildGeneral($fechaInicio, $fechaFin),
+            default       => abort(404, 'Tipo de reporte no válido'),
+        };
+
+        $view = view("modules.reportes.pdf.{$tipo}", compact('datos', 'fechaInicio', 'fechaFin'));
+
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadHTML($view->render());
+        $pdf->setPaper('A4', 'landscape');
+
+        $nombreArchivo = "reporte_{$tipo}_" . now()->format('Y-m-d_His') . '.pdf';
+
+        return $pdf->download($nombreArchivo);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // EXPORTACIÓN EXCEL
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Exporta un reporte en Excel según el tipo solicitado.
+     */
+    public function exportarExcel(Request $request, string $tipo)
+    {
+        $fechaInicio = $request->filled('fecha_inicio')
+            ? Carbon::parse($request->fecha_inicio)->startOfDay()
+            : Carbon::now()->startOfMonth();
+
+        $fechaFin = $request->filled('fecha_fin')
+            ? Carbon::parse($request->fecha_fin)->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $nombreArchivo = "reporte_{$tipo}_" . now()->format('Y-m-d_His') . '.xlsx';
+
+        $export = match ($tipo) {
+            'ventas'      => new VentasExport($fechaInicio, $fechaFin),
+            'clientes'    => new ClientesExport($fechaInicio, $fechaFin),
+            'inventario'  => new InventarioExport(),
+            'servicios'   => new ServiciosExport($fechaInicio, $fechaFin),
+            'promociones' => new PromocionesExport($fechaInicio, $fechaFin),
+            default       => abort(404, 'Tipo de reporte no válido'),
+        };
+
+        return \Maatwebsite\Excel\Facades\Excel::download($export, $nombreArchivo);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // BUILDERS DE DATOS
+    // ─────────────────────────────────────────────────────────
+
+    /** KPIs generales del negocio. */
+    private function buildKpis(Carbon $inicio, Carbon $fin): array
+    {
+        $ingresosPeriodo = ServicioRealizado::whereBetween('fecha_realizacion', [$inicio, $fin])
+            ->sum('precio_cobrado');
+
+        $serviciosRealizadosPeriodo = ServicioRealizado::whereBetween('fecha_realizacion', [$inicio, $fin])
+            ->count();
+
+        $citasPeriodo = Cita::whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])->count();
+
+        $clientesTotales  = Cliente::count();
+        $clientesActivos  = Cliente::activos()->count();
+        $estilistasTotales = Estilista::activos()->count();
+        $productosBajoStock = Producto::stockBajo()->count();
+
+        return compact(
+            'ingresosPeriodo',
+            'serviciosRealizadosPeriodo',
+            'citasPeriodo',
+            'clientesTotales',
+            'clientesActivos',
+            'estilistasTotales',
+            'productosBajoStock'
+        );
+    }
+
+    /** Datos para la sección de Ventas/Ingresos. */
+    private function buildVentas(Carbon $inicio, Carbon $fin, $estilistaId = null, $clienteId = null): array
+    {
+        $query = ServicioRealizado::with(['estilista', 'servicio', 'cliente'])
+            ->whereBetween('fecha_realizacion', [$inicio, $fin]);
+
+        if ($estilistaId) {
+            $query->where('estilista_id', $estilistaId);
+        }
+        if ($clienteId) {
+            $query->where('cliente_id', $clienteId);
+        }
+
+        $registros = $query->orderByDesc('fecha_realizacion')->get();
+
+        $totalIngresos    = $registros->sum('precio_cobrado');
+        $totalComisiones  = $registros->sum('comision_monto');
+        $ticketPromedio   = $registros->count() > 0 ? $totalIngresos / $registros->count() : 0;
+
+        // Top 5 estilistas por ingresos
+        $topEstilistas = ServicioRealizado::with('estilista')
+            ->whereBetween('fecha_realizacion', [$inicio, $fin])
+            ->select('estilista_id', DB::raw('SUM(precio_cobrado) as total'), DB::raw('COUNT(*) as cantidad'))
+            ->groupBy('estilista_id')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        return compact('registros', 'totalIngresos', 'totalComisiones', 'ticketPromedio', 'topEstilistas');
+    }
+
+    /** Datos para la sección de Clientes. */
+    private function buildClientes(Carbon $inicio, Carbon $fin): array
+    {
+        $clientesList = Cliente::withCount([
+            'citas as total_citas',
+        ])->orderBy('nombre')->paginate(15, ['*'], 'page_clientes');
+
+        // Clientes nuevos en el período
+        $clientesNuevos = Cliente::whereBetween('created_at', [$inicio, $fin])->count();
+
+        // Top clientes por cantidad de citas
+        $topClientes = Cliente::withCount('citas')
+            ->orderByDesc('citas_count')
+            ->limit(5)
+            ->get();
+
+        $totalActivos   = Cliente::activos()->count();
+        $totalInactivos = Cliente::where('estado', '!=', 'activo')->count();
+
+        return compact('clientesList', 'clientesNuevos', 'topClientes', 'totalActivos', 'totalInactivos');
+    }
+
+    /** Datos para la sección de Inventario. */
+    private function buildInventario(): array
+    {
+        $productos = Producto::orderBy('categoria')->orderBy('nombre')->get();
+
+        $totalProductos   = $productos->count();
+        $productosBajo    = $productos->filter(fn($p) => $p->stock_actual <= $p->stock_minimo && $p->stock_actual > 0)->count();
+        $productosCritico = $productos->filter(fn($p) => $p->stock_actual === 0)->count();
+        $productosOk      = $totalProductos - $productosBajo - $productosCritico;
+
+        $valorInventario  = $productos->sum(fn($p) => $p->stock_actual * $p->precio_compra);
+        $valorVentaTotal  = $productos->sum(fn($p) => $p->stock_actual * $p->precio_venta);
+
+        // Agrupados por categoría
+        $porCategoria = $productos->groupBy('categoria')->map(fn($grupo) => [
+            'cantidad'  => $grupo->count(),
+            'stock'     => $grupo->sum('stock_actual'),
+            'valor'     => $grupo->sum(fn($p) => $p->stock_actual * $p->precio_compra),
+        ]);
+
+        return compact(
+            'productos',
+            'totalProductos',
+            'productosBajo',
+            'productosCritico',
+            'productosOk',
+            'valorInventario',
+            'valorVentaTotal',
+            'porCategoria'
+        );
+    }
+
+    /** Datos para la sección de Servicios & Citas. */
+    private function buildServicios(Carbon $inicio, Carbon $fin): array
+    {
+        $citas = Cita::with(['cliente', 'estilista', 'servicio'])
+            ->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])
+            ->orderByDesc('fecha')
+            ->paginate(15, ['*'], 'page_citas');
+
+        // Distribución por estado
+        $porEstado = Cita::whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])
+            ->select('estado', DB::raw('COUNT(*) as total'))
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        // Top servicios más solicitados
+        $topServicios = Servicio::withCount(['citas as total_citas' => function ($q) use ($inicio, $fin) {
+            $q->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()]);
+        }])->orderByDesc('total_citas')->limit(5)->get();
+
+        $totalCitas    = Cita::whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])->count();
+        $citasCompletadas = $porEstado['completada'] ?? 0;
+        $citasCanceladas  = $porEstado['cancelada'] ?? 0;
+        $citasPendientes  = $porEstado['pendiente'] ?? 0;
+
+        return compact('citas', 'porEstado', 'topServicios', 'totalCitas', 'citasCompletadas', 'citasCanceladas', 'citasPendientes');
+    }
+
+    /** Datos para la sección de Promociones & Comisiones. */
+    private function buildPromociones(Carbon $inicio, Carbon $fin): array
+    {
+        $promociones = Promocion::with('servicios')
+            ->orderByDesc('fecha_inicio')
+            ->get();
+
+        $activas  = $promociones->filter(fn($p) => $p->is_vigente)->count();
+        $vencidas = $promociones->filter(fn($p) => $p->fecha_fin < now())->count();
+        $futuras  = $promociones->filter(fn($p) => $p->fecha_inicio > now())->count();
+
+        $comisiones = Comision::with('estilista')
+            ->where(function ($q) use ($inicio, $fin) {
+                $q->whereBetween('periodo_inicio', [$inicio, $fin])
+                  ->orWhereBetween('periodo_fin', [$inicio, $fin]);
+            })
+            ->orderByDesc('periodo_fin')
+            ->get();
+
+        $totalComisionesPagadas  = $comisiones->where('estado', 'aprobada')->sum('total_comision');
+        $totalComisionesPendientes = $comisiones->where('estado', 'pendiente')->sum('total_comision');
+
+        return compact(
+            'promociones',
+            'activas',
+            'vencidas',
+            'futuras',
+            'comisiones',
+            'totalComisionesPagadas',
+            'totalComisionesPendientes'
+        );
+    }
+
+    /** Datos completos para reporte general. */
+    private function buildGeneral(Carbon $inicio, Carbon $fin): array
+    {
+        return [
+            'kpis'       => $this->buildKpis($inicio, $fin),
+            'ventas'     => $this->buildVentas($inicio, $fin),
+            'clientes'   => $this->buildClientes($inicio, $fin),
+            'inventario' => $this->buildInventario(),
+            'servicios'  => $this->buildServicios($inicio, $fin),
+        ];
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // DATOS PARA GRÁFICAS (Chart.js)
+    // ─────────────────────────────────────────────────────────
+
+    /** Ingresos por mes (últimos 12 meses). */
+    private function graficaIngresosPorMes(): array
+    {
+        $datos = ServicioRealizado::select(
+            DB::raw("DATE_FORMAT(fecha_realizacion, '%Y-%m') as mes"),
+            DB::raw('SUM(precio_cobrado) as total')
+        )
+        ->where('fecha_realizacion', '>=', Carbon::now()->subMonths(11)->startOfMonth())
+        ->groupBy('mes')
+        ->orderBy('mes')
+        ->get();
+
+        return [
+            'labels' => $datos->pluck('mes')->toArray(),
+            'data'   => $datos->pluck('total')->map(fn($v) => (float)$v)->toArray(),
+        ];
+    }
+
+    /** Top 5 servicios por ingresos en el período. */
+    private function graficaTopServicios(Carbon $inicio, Carbon $fin): array
+    {
+        $datos = ServicioRealizado::with('servicio')
+            ->whereBetween('fecha_realizacion', [$inicio, $fin])
+            ->select('servicio_id', DB::raw('SUM(precio_cobrado) as total'), DB::raw('COUNT(*) as cantidad'))
+            ->groupBy('servicio_id')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        return [
+            'labels' => $datos->map(fn($r) => $r->servicio?->nombre ?? 'Desconocido')->toArray(),
+            'data'   => $datos->pluck('total')->map(fn($v) => (float)$v)->toArray(),
+        ];
+    }
+
+    /** Distribución de citas por estado. */
+    private function graficaCitasPorEstado(Carbon $inicio, Carbon $fin): array
+    {
+        $datos = Cita::whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])
+            ->select('estado', DB::raw('COUNT(*) as total'))
+            ->groupBy('estado')
+            ->get();
+
+        return [
+            'labels' => $datos->pluck('estado')->toArray(),
+            'data'   => $datos->pluck('total')->toArray(),
+        ];
+    }
+}

@@ -58,4 +58,12 @@ class Cliente extends Model
     {
         return $query->where('estado', 'activo');
     }
+
+    /**
+     * Citas del cliente.
+     */
+    public function citas()
+    {
+        return $this->hasMany(\App\Modules\P4_GestionServiciosCitas\Models\Cita::class, 'cliente_id');
+    }
 }

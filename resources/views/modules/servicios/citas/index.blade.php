@@ -104,7 +104,15 @@
                                     </td>
                                     <td style="padding:12px; vertical-align:middle;">
                                         <div class="d-flex gap-1">
-                                            <a href="{{ route('citas.show', $cita) }}" class="btn btn-sm" style="background-color:#17a2b8; color:white; border:none; border-radius:6px; padding:4px 8px;">
+                                            @php
+                                                $pagoCompletado = \App\Modules\P5_PagosFacturacion\Models\Pago::where('cita_id', $cita->id)->where('estado_pago', 'completado')->exists();
+                                            @endphp
+                                            @if(!$pagoCompletado && $cita->estado != 'cancelada')
+                                                <a href="{{ route('pagos.checkout', $cita->id) }}" class="btn btn-sm" style="background-color:#6f42c1; color:white; border:none; border-radius:6px; padding:4px 8px;" title="Pagar Cita">
+                                                    <svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-credit-card') }}"></use></svg>
+                                                </a>
+                                            @endif
+                                            <a href="{{ route('citas.show', $cita) }}" class="btn btn-sm" style="background-color:#17a2b8; color:white; border:none; border-radius:6px; padding:4px 8px;" title="Ver Detalle">
                                                 <svg class="icon" style="width:14px; height:14px;"><use xlink:href="{{ asset('icons/coreui.svg#cil-eye') }}"></use></svg>
                                             </a>
                                             @if(in_array($cita->estado, ['pendiente', 'en_curso']))

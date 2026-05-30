@@ -189,4 +189,20 @@
             </a>
         </li>
     @endif
+
+    {{-- ═══════════════════════════════════════════════════ --}}
+    {{-- P6 — REPORTES Y ANÁLISIS (Solo Admin)             --}}
+    {{-- ═══════════════════════════════════════════════════ --}}
+    @if(auth()->check() && auth()->user()->hasAnyRole(['admin', 'super-admin']))
+    <li class="nav-title" style="color:#CC5CB8; font-weight:600; font-size:0.7rem; letter-spacing:1px; margin-top:1rem;">p6-reportes y análisis</li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('reportes.index') }}"
+               style="{{ request()->routeIs('reportes.*') ? 'background:rgba(204,92,184,0.15); border-right:3px solid #cc5cb8;' : '' }}">
+                <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-chart-pie') }}"></use></svg>
+                {{ __('Reportes') }}
+            </a>
+        </li>
+    @endif
 </ul>
+

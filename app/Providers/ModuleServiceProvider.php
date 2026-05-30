@@ -49,6 +49,13 @@ class ModuleServiceProvider extends ServiceProvider
                 Route::middleware(['web', 'auth'])
                     ->group($routeFile);
             }
+
+            $apiRouteFile = app_path("Modules/{$module}/Routes/api.php");
+            if (file_exists($apiRouteFile)) {
+                Route::middleware(['api'])
+                    ->prefix('api')
+                    ->group($apiRouteFile);
+            }
         }
     }
 }
