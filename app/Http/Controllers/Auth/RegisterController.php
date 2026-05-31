@@ -99,6 +99,7 @@ class RegisterController extends Controller
             'nombre'   => $nombre,
             'apellido' => $apellido,
             'email'    => $data['email'],
+            'telefono' => '00000000',
             'estado'   => 'activo',
         ]);
 
