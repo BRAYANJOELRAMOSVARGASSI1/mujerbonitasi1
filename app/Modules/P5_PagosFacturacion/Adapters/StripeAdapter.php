@@ -40,7 +40,7 @@ class StripeAdapter implements PaymentGatewayInterface
                 'metadata' => [
                     'cita_id' => $cita->id,
                 ],
-                'success_url' => route('pagos.stripe.success', ['cita_id' => $cita->id]),
+                'success_url' => route('pagos.stripe.success', ['cita_id' => $cita->id]) . '&session_id={CHECKOUT_SESSION_ID}',
                 'cancel_url' => route('pagos.stripe.cancel', ['cita_id' => $cita->id]),
             ]);
 

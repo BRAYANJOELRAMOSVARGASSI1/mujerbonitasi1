@@ -55,7 +55,28 @@ class PagoController extends Controller
     public function success(Request $request)
     {
         $cita_id = $request->query('cita_id');
+        $session_id = $request->query('session_id');
         $cita = Cita::findOrFail($cita_id);
+
+        if ($session_id) {
+            $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
+            try {
+                $session = $stripe->checkout->sessions->retrieve($session_id);
+                if ($session->payment_status === 'paid') {
+                    $pago = Pago::where('cita_id', $cita_id)
+                                ->where('estado_pago', 'pendiente')
+                                ->first();
+                    if ($pago) {
+                        $pago->update([
+                            'estado_pago' => 'completado',
+                            'transaccion_id' => $session->payment_intent
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Error validando pago en success: ' . $e->getMessage());
+            }
+        }
         
         return view('modules.pagos.success', compact('cita'));
     }

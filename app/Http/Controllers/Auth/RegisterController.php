@@ -90,6 +90,18 @@ class RegisterController extends Controller
         // Asignar rol cliente automáticamente al registrarse
         $user->assignRole('cliente');
 
+        // Sincronizar el perfil del cliente para el agendamiento operativo
+        $nombres = explode(' ', trim($data['name']), 2);
+        $nombre = $nombres[0];
+        $apellido = isset($nombres[1]) ? $nombres[1] : '';
+
+        \App\Modules\P2_GestionPersonalClientes\Models\Cliente::create([
+            'nombre'   => $nombre,
+            'apellido' => $apellido,
+            'email'    => $data['email'],
+            'estado'   => 'activo',
+        ]);
+
         return $user;
     }
 }

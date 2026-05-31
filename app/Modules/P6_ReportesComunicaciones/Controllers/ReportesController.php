@@ -192,6 +192,14 @@ class ReportesController extends Controller
         $ingresosPeriodo = ServicioRealizado::whereBetween('fecha_realizacion', [$inicio, $fin])
             ->sum('precio_cobrado');
 
+        $pagosAdelantados = \App\Modules\P5_PagosFacturacion\Models\Pago::where('estado_pago', 'completado')
+            ->whereBetween('updated_at', [$inicio, $fin])
+            ->whereHas('cita', function($q) {
+                $q->whereDoesntHave('servicioRealizado');
+            })->sum('monto');
+            
+        $ingresosPeriodo += $pagosAdelantados;
+
         $serviciosRealizadosPeriodo = ServicioRealizado::whereBetween('fecha_realizacion', [$inicio, $fin])
             ->count();
 
@@ -230,7 +238,25 @@ class ReportesController extends Controller
 
         $totalIngresos    = $registros->sum('precio_cobrado');
         $totalComisiones  = $registros->sum('comision_monto');
-        $ticketPromedio   = $registros->count() > 0 ? $totalIngresos / $registros->count() : 0;
+
+        // Agregar ingresos de pagos adelantados
+        $pagosAdelantadosQuery = \App\Modules\P5_PagosFacturacion\Models\Pago::where('estado_pago', 'completado')
+            ->whereBetween('updated_at', [$inicio, $fin])
+            ->whereHas('cita', function($q) use ($estilistaId, $clienteId) {
+                $q->whereDoesntHave('servicioRealizado');
+                if ($estilistaId) {
+                    $q->where('estilista_id', $estilistaId);
+                }
+                if ($clienteId) {
+                    $q->where('cliente_id', $clienteId);
+                }
+            });
+            
+        $ingresosAdelantados = $pagosAdelantadosQuery->sum('monto');
+        $totalIngresos += $ingresosAdelantados;
+
+        $totalOperaciones = $registros->count() + $pagosAdelantadosQuery->count();
+        $ticketPromedio   = $totalOperaciones > 0 ? $totalIngresos / $totalOperaciones : 0;
 
         // Top 5 estilistas por ingresos
         $topEstilistas = ServicioRealizado::with('estilista')
