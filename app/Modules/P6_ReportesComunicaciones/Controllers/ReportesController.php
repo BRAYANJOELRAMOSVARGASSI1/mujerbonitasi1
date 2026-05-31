@@ -82,6 +82,9 @@ class ReportesController extends Controller
         // ── SECCIÓN SERVICIOS & CITAS ────────────────────────────
         $servicios = $this->buildServicios($fechaInicio, $fechaFin);
 
+        // ── SECCIÓN PAGOS ONLINE/MANUALES ────────────────────────
+        $pagos = $this->buildPagos($fechaInicio, $fechaFin);
+
         // ── SECCIÓN PROMOCIONES & COMISIONES ─────────────────────
         $promociones = $this->buildPromociones($fechaInicio, $fechaFin);
 
@@ -100,6 +103,7 @@ class ReportesController extends Controller
             'clientes',
             'inventario',
             'servicios',
+            'pagos',
             'promociones',
             'listaEstilistas',
             'listaClientes',
@@ -382,6 +386,25 @@ class ReportesController extends Controller
             'totalComisionesPagadas',
             'totalComisionesPendientes'
         );
+    }
+
+    /** Datos para la sección de Pagos. */
+    private function buildPagos(Carbon $inicio, Carbon $fin): array
+    {
+        $pagosQuery = \App\Modules\P5_PagosFacturacion\Models\Pago::with(['cita.cliente', 'cita.servicio'])
+            ->whereBetween('updated_at', [$inicio, $fin])
+            ->orderByDesc('updated_at');
+
+        $listaPagos = $pagosQuery->get();
+
+        $totalOnline   = $listaPagos->where('metodo', 'stripe')->where('estado_pago', 'completado')->sum('monto');
+        $totalEfectivo = $listaPagos->where('metodo', 'efectivo')->where('estado_pago', 'completado')->sum('monto');
+        $totalTarjeta  = $listaPagos->where('metodo', 'tarjeta_presencial')->where('estado_pago', 'completado')->sum('monto');
+        $pendientes    = $listaPagos->where('estado_pago', 'pendiente')->sum('monto');
+
+        $porMetodo = $listaPagos->where('estado_pago', 'completado')->groupBy('metodo')->map->count();
+
+        return compact('listaPagos', 'totalOnline', 'totalEfectivo', 'totalTarjeta', 'pendientes', 'porMetodo');
     }
 
     /** Datos completos para reporte general. */

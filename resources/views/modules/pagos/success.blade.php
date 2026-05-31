@@ -24,9 +24,16 @@
                     
                     <p>Recibirás un comprobante en tu correo electrónico en breve.</p>
 
-                    <a href="{{ url('/') }}" class="btn btn-primary mt-3">
-                        Volver al Inicio
-                    </a>
+                    <div class="mt-3 d-flex justify-content-center gap-2">
+                        <a href="{{ url('/') }}" class="btn btn-primary">
+                            Volver al Inicio
+                        </a>
+                        @if(isset($pago) && $pago->estado_pago === 'completado')
+                            <a href="{{ route('pagos.factura', $pago->id) }}" class="btn btn-outline-info">
+                                <i class="fas fa-file-invoice"></i> Ver Factura
+                            </a>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

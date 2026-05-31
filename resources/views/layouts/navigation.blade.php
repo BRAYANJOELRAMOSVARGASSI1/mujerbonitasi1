@@ -181,6 +181,16 @@
     @if(auth()->check() && (auth()->user()->hasAnyRole(['admin', 'super-admin']) || auth()->user()->can('ver comisiones')))
     <li class="nav-title" style="color:#CC5CB8; font-weight:600; font-size:0.7rem; letter-spacing:1px; margin-top:1rem;">p5-pagos y facturación</li>
 
+        {{-- CU26 — Pagos (Admin, Recepcionista) --}}
+        @if(auth()->user()->hasAnyRole(['admin', 'super-admin', 'recepcionista']))
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('pagos.index') }}">
+                <svg class="nav-icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-money') }}"></use></svg>
+                {{ __('Pagos / Facturación') }}
+            </a>
+        </li>
+        @endif
+
         {{-- CU25 — Comisiones (Admin, Estilista ve las suyas) --}}
         <li class="nav-item">
             <a class="nav-link" href="{{ route('comisiones.index') }}">

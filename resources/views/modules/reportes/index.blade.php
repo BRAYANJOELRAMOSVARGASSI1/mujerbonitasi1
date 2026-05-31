@@ -422,6 +422,7 @@
         ['id' => 'clientes',    'icon' => '👥', 'label' => 'Clientes'],
         ['id' => 'inventario',  'icon' => '📦', 'label' => 'Inventario'],
         ['id' => 'servicios',   'icon' => '📅', 'label' => 'Servicios & Citas'],
+        ['id' => 'pagos',       'icon' => '💳', 'label' => 'Pagos Online'],
         ['id' => 'promociones', 'icon' => '🎁', 'label' => 'Promociones & Comisiones'],
     ] as $tab)
     <li class="nav-item" role="presentation">
@@ -872,6 +873,92 @@
 </div>
 
 {{-- ══════════════════════════════════════════════════════════════
+     TAB 4.5 — PAGOS ONLINE
+══════════════════════════════════════════════════════════════ --}}
+<div class="tab-pane fade" id="pane-pagos" role="tabpanel">
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="sub-kpi" style="background:#cce5ff;">
+                <div class="valor" style="color:#004085;">₡{{ number_format($pagos['totalOnline'], 2, ',', '.') }}</div>
+                <div class="etiqueta">Total Stripe</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="sub-kpi" style="background:#d4edda;">
+                <div class="valor" style="color:#155724;">₡{{ number_format($pagos['totalEfectivo'], 2, ',', '.') }}</div>
+                <div class="etiqueta">Total Efectivo</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="sub-kpi" style="background:#e2e3e5;">
+                <div class="valor" style="color:#383d41;">₡{{ number_format($pagos['totalTarjeta'], 2, ',', '.') }}</div>
+                <div class="etiqueta">Total Tarjeta Pres.</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="sub-kpi" style="background:#fff3cd;">
+                <div class="valor" style="color:#856404;">₡{{ number_format($pagos['pendientes'], 2, ',', '.') }}</div>
+                <div class="etiqueta">Pendientes de Cobro</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-8">
+            <div class="seccion-card">
+                <div class="seccion-header">
+                    <h5>💳 Registro de Pagos</h5>
+                </div>
+                <div class="table-responsive" style="max-height:400px; overflow-y:auto;">
+                    <table class="table tabla-reportes mb-0">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Monto</th>
+                                <th class="text-center">Método</th>
+                                <th class="text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($pagos['listaPagos'] as $pago)
+                            <tr>
+                                <td>{{ $pago->updated_at->format('d/m/Y H:i') }}</td>
+                                <td>{{ $pago->cita->cliente->nombre ?? 'N/A' }}</td>
+                                <td class="fw-bold" style="color:var(--mb-primary);">₡{{ number_format($pago->monto, 2, ',', '.') }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">{{ strtoupper($pago->metodo) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    @if($pago->estado_pago === 'completado')
+                                        <span class="badge-estado badge-completada">Completado</span>
+                                    @else
+                                        <span class="badge-estado badge-pendiente">Pendiente</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="5" class="text-center text-muted py-4">Sin pagos en este período</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="seccion-card h-100">
+                <div class="seccion-header"><h5>📊 Por Método</h5></div>
+                <div class="p-3">
+                    <div class="grafica-container" style="height:220px;">
+                        <canvas id="graficaMetodosPago"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ══════════════════════════════════════════════════════════════
      TAB 5 — PROMOCIONES & COMISIONES
 ══════════════════════════════════════════════════════════════ --}}
 <div class="tab-pane fade" id="pane-promociones" role="tabpanel">
@@ -1046,6 +1133,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 datasets: [{
                     data: datosCitas.data,
                     backgroundColor: colores,
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 12 } } }
+                }
+            }
+        });
+    }
+
+    // ── Gráfica Métodos de Pago ───────────────────────────────
+    const ctxMetodosPago = document.getElementById('graficaMetodosPago');
+    if (ctxMetodosPago) {
+        const datosMetodos = @json($pagos['porMetodo']);
+        new Chart(ctxMetodosPago, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(datosMetodos).map(k => k.toUpperCase()),
+                datasets: [{
+                    data: Object.values(datosMetodos),
+                    backgroundColor: ['#662a5b', '#198754', '#0d6efd', '#ffc107'],
                     borderWidth: 0,
                 }]
             },

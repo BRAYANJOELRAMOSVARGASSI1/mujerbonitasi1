@@ -22,7 +22,18 @@ Route::post('comisiones/{comision}/aprobar', [ComisionController::class, 'aproba
 // CU26 — Procesar Pago
 use App\Modules\P5_PagosFacturacion\Controllers\PagoController;
 
-Route::get('pagos/checkout/{cita_id}', [PagoController::class, 'checkout'])->name('pagos.checkout');
-Route::post('pagos/stripe/iniciar/{cita_id}', [PagoController::class, 'iniciarPago'])->name('pagos.stripe.iniciar');
-Route::get('pagos/stripe/success', [PagoController::class, 'success'])->name('pagos.stripe.success');
-Route::get('pagos/stripe/cancel', [PagoController::class, 'cancel'])->name('pagos.stripe.cancel');
+Route::prefix('pagos')->name('pagos.')->group(function () {
+    // CU26 — Procesar Pago (Listado y Manual)
+    Route::get('/', [PagoController::class, 'index'])->name('index')->middleware('role:admin|recepcionista|super-admin');
+    Route::post('/manual/{cita_id}', [PagoController::class, 'processManual'])->name('manual')->middleware('role:admin|recepcionista|super-admin');
+
+    // Checkout de cliente
+    Route::get('/checkout/{cita_id}', [PagoController::class, 'checkout'])->name('checkout');
+    Route::post('/stripe/iniciar/{cita_id}', [PagoController::class, 'iniciarPago'])->name('stripe.iniciar');
+    Route::get('/stripe/success', [PagoController::class, 'success'])->name('stripe.success');
+    Route::get('/stripe/cancel', [PagoController::class, 'cancel'])->name('stripe.cancel');
+
+    // CU18 — Generar Factura/Ticket
+    Route::get('/{pago}/factura', [PagoController::class, 'factura'])->name('factura');
+    Route::get('/{pago}/factura/pdf', [PagoController::class, 'facturaDownload'])->name('factura.pdf');
+});
