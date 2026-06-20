@@ -340,7 +340,7 @@
                 📅 {{ $fechaInicio->format('d/m/Y') }} — {{ $fechaFin->format('d/m/Y') }}
             </span>
             <button id="btnVoice" class="btn-voice" type="button" onclick="abrirModalReporte()">
-                🤖 Reporte IA
+                🎤 Reporte por Voz
             </button>
             <a href="{{ route('reportes.pdf', 'general') }}?fecha_inicio={{ $fechaInicio->toDateString() }}&fecha_fin={{ $fechaFin->toDateString() }}"
                class="btn-export-pdf">
@@ -1109,21 +1109,42 @@
 
 </div>{{-- end tab-content --}}
 
-{{-- ─── MODAL REPORTE IA ──────────────────────────────────────── --}}
+{{-- ─── MODAL REPORTE IA (VOZ + TEXTO) ──────────────────────────── --}}
 <div id="modalReporte" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:white; border-radius:16px; padding:2rem; max-width:500px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <h5 style="margin:0; color:#381432;">🤖 Generador de Reportes con IA</h5>
+    <div style="background:white; border-radius:16px; padding:2rem; max-width:520px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h5 style="margin:0; color:#381432;">🎤 Reporte por Voz e IA</h5>
             <button onclick="cerrarModalReporte()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#888;">×</button>
         </div>
-        <p style="color:#666; font-size:.9rem; margin-bottom:1rem;">Escribe en lenguaje natural qué reporte necesitas:</p>
-        <div style="background:#f8f0f6; border-radius:8px; padding:1rem; margin-bottom:1rem; font-size:.85rem; color:#662a5b;">
-            💡 Ejemplos: <em>"ventas de este mes"</em>, <em>"clientes de hoy"</em>, <em>"inventario general"</em>, <em>"servicios de la semana"</em>
+
+        {{-- Sección VOZ --}}
+        <div style="background:#f8f0f6; border-radius:12px; padding:1.25rem; margin-bottom:1rem; text-align:center;">
+            <p style="margin:0 0 .75rem; font-size:.85rem; color:#662a5b; font-weight:600;">🎤 Habla y di qué reporte necesitas</p>
+            <button id="btnGrabar" onclick="toggleGrabacion()"
+                    style="background:#662a5b; color:white; border:none; border-radius:50px; padding:.6rem 1.5rem; font-weight:700; font-size:.9rem; cursor:pointer; transition:all .2s;">
+                ● Iniciar Grabación
+            </button>
+            <div id="indicadorGrabacion" style="display:none; margin-top:.75rem; align-items:center; justify-content:center; gap:.5rem;">
+                <div style="width:10px; height:10px; background:#d32f2f; border-radius:50%; animation:pulse 1s infinite;"></div>
+                <span style="font-size:.85rem; color:#d32f2f; font-weight:600;">Grabando... (habla ahora)</span>
+                <span id="timerGrabacion" style="font-size:.85rem; color:#888;">0s</span>
+            </div>
         </div>
-        <textarea id="textoReporteIA" rows="3" placeholder="Ej: quiero un reporte de ventas del mes pasado..." 
-                  style="width:100%; border:2px solid #e8d5e5; border-radius:8px; padding:.75rem; font-size:.9rem; resize:none; outline:none;"
+
+        <div style="display:flex; align-items:center; gap:.75rem; margin-bottom:1rem;">
+            <hr style="flex:1; border-color:#e8d5e5;">
+            <span style="font-size:.8rem; color:#999;">o escribe tu consulta</span>
+            <hr style="flex:1; border-color:#e8d5e5;">
+        </div>
+
+        {{-- Sección TEXTO --}}
+        <div style="background:#f8f0f6; border-radius:8px; padding:.6rem .75rem; margin-bottom:.75rem; font-size:.82rem; color:#662a5b;">
+            💡 Ej: <em>"ventas de este mes"</em>, <em>"clientes de hoy"</em>, <em>"servicios de la semana"</em>
+        </div>
+        <textarea id="textoReporteIA" rows="2" placeholder="Ej: quiero ver el reporte de ventas del mes pasado..."
+                  style="width:100%; border:2px solid #e8d5e5; border-radius:8px; padding:.75rem; font-size:.9rem; resize:none; outline:none; box-sizing:border-box;"
                   onkeydown="if(event.ctrlKey&&event.key==='Enter') procesarTextoReporte();"></textarea>
-        <div style="display:flex; gap:.75rem; margin-top:1rem;">
+        <div style="display:flex; gap:.75rem; margin-top:.75rem;">
             <button onclick="procesarTextoReporte()" id="btnProcesarIA"
                     style="flex:1; background:#662a5b; color:white; border:none; border-radius:8px; padding:.75rem; font-weight:600; cursor:pointer; font-size:.9rem;">
                 🚀 Generar Reporte
@@ -1256,48 +1277,145 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ── Tab switching manual (sin Bootstrap JS) ──────────────────
 function switchTab(targetId, btn) {
-    // Ocultar todos los panes
     document.querySelectorAll('.tab-pane').forEach(pane => {
         pane.classList.remove('show', 'active');
     });
-    // Desactivar todos los botones
     document.querySelectorAll('#reportesTab .nav-link').forEach(b => {
         b.classList.remove('active');
     });
-    // Activar el pane y botón seleccionado
     const pane = document.getElementById(targetId);
     if (pane) { pane.classList.add('show', 'active'); }
     if (btn)  { btn.classList.add('active'); }
 }
 
-// ── Modal Reporte IA ─────────────────────────────────────────
+// ── Modal y Grabación de Voz ─────────────────────────────────
+let mediaRecorder = null;
+let audioChunks = [];
+let timerInterval = null;
+let segundos = 0;
+
 function abrirModalReporte() {
     document.getElementById('modalReporte').style.display = 'flex';
-    setTimeout(() => document.getElementById('textoReporteIA').focus(), 100);
+    setTimeout(() => document.getElementById('textoReporteIA').focus(), 150);
 }
+
 function cerrarModalReporte() {
+    // Parar grabación si está activa
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+    }
     document.getElementById('modalReporte').style.display = 'none';
     document.getElementById('textoReporteIA').value = '';
     document.getElementById('msgReporteIA').style.display = 'none';
+    resetGrabacion();
+}
+
+function resetGrabacion() {
+    clearInterval(timerInterval);
+    segundos = 0;
+    const btn = document.getElementById('btnGrabar');
+    if (btn) {
+        btn.innerHTML = '● Iniciar Grabación';
+        btn.style.background = '#662a5b';
+    }
+    const ind = document.getElementById('indicadorGrabacion');
+    if (ind) ind.style.display = 'none';
+}
+
+async function toggleGrabacion() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        // Detener grabación
+        mediaRecorder.stop();
+        return;
+    }
+
+    // Verificar soporte HTTPS para mic
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        document.getElementById('msgReporteIA').style.display = 'block';
+        document.getElementById('msgReporteIA').innerHTML = `<div style="background:#fff3cd; color:#856404; border-radius:8px; padding:.75rem; font-size:.9rem;">
+            ⚠️ Tu navegador no soporta grabación de audio en esta conexión.<br>
+            Usa <strong>https://mujerbonita.34.229.165.40.nip.io</strong> o escribe tu consulta abajo.
+        </div>`;
+        return;
+    }
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        segundos = 0;
+
+        const btn = document.getElementById('btnGrabar');
+        const ind = document.getElementById('indicadorGrabacion');
+        const timer = document.getElementById('timerGrabacion');
+
+        btn.innerHTML = '◼ Detener';
+        btn.style.background = '#d32f2f';
+        ind.style.display = 'flex';
+
+        timerInterval = setInterval(() => {
+            segundos++;
+            if (timer) timer.textContent = segundos + 's';
+            if (segundos >= 30) { mediaRecorder.stop(); } // máx 30s
+        }, 1000);
+
+        mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+            clearInterval(timerInterval);
+            stream.getTracks().forEach(t => t.stop());
+            resetGrabacion();
+
+            if (audioChunks.length === 0) return;
+
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'reporte_voz.webm');
+            if (csrfToken) formData.append('_token', csrfToken);
+
+            enviarReporteIA(formData, true);
+        };
+
+        mediaRecorder.start();
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById('msgReporteIA').style.display = 'block';
+        document.getElementById('msgReporteIA').innerHTML = `<div style="background:#f8d7da; color:#721c24; border-radius:8px; padding:.75rem;">
+            ❌ No se pudo acceder al micrófono: ${err.message}<br>
+            Asegúrate de estar en <strong>https://</strong> y permite el permiso de micrófono.
+        </div>`;
+    }
 }
 
 async function procesarTextoReporte() {
     const texto = document.getElementById('textoReporteIA').value.trim();
     if (!texto) { alert('Por favor escribe qué reporte necesitas.'); return; }
 
-    const btn = document.getElementById('btnProcesarIA');
-    const msg = document.getElementById('msgReporteIA');
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Procesando con IA...';
-    msg.style.display = 'none';
-
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const formData = new FormData();
+    formData.append('texto', texto);
+    if (csrfToken) formData.append('_token', csrfToken);
+
+    enviarReporteIA(formData, false);
+}
+
+async function enviarReporteIA(formData, esAudio) {
+    const btn = document.getElementById('btnProcesarIA');
+    const btnGrab = document.getElementById('btnGrabar');
+    const msg = document.getElementById('msgReporteIA');
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Procesando con IA...'; }
+    if (btnGrab) { btnGrab.disabled = true; }
+    msg.style.display = 'block';
+    msg.innerHTML = `<div style="background:#e8f4fd; color:#0c5460; border-radius:8px; padding:.75rem; font-size:.9rem;">
+        ⏳ ${esAudio ? 'Transcribiendo audio y analizando...' : 'Analizando tu consulta con IA...'}
+    </div>`;
 
     try {
-        const formData = new FormData();
-        formData.append('texto', texto);
-        formData.append('_token', csrfToken || '');
-
         const response = await fetch('{{ route("reportes.voice") }}', {
             method: 'POST',
             body: formData,
@@ -1307,30 +1425,27 @@ async function procesarTextoReporte() {
         const data = await response.json();
 
         if (data.success) {
-            msg.style.display = 'block';
             msg.innerHTML = `<div style="background:#d4edda; color:#155724; border-radius:8px; padding:.75rem; font-size:.9rem;">
                 ✅ <strong>Entendido:</strong> "${data.texto}"<br>
                 Generando reporte de <strong>${data.reporte.tipo.toUpperCase()}</strong>...
             </div>`;
             setTimeout(() => {
-                let url = `/reportes/pdf/${data.reporte.tipo}?`;
-                if (data.reporte.fecha_inicio) url += `fecha_inicio=${data.reporte.fecha_inicio}&`;
-                if (data.reporte.fecha_fin)    url += `fecha_fin=${data.reporte.fecha_fin}`;
+                let url = '/reportes/pdf/' + data.reporte.tipo + '?';
+                if (data.reporte.fecha_inicio) url += 'fecha_inicio=' + data.reporte.fecha_inicio + '&';
+                if (data.reporte.fecha_fin)    url += 'fecha_fin='    + data.reporte.fecha_fin;
                 window.location.href = url;
             }, 2000);
         } else {
-            msg.style.display = 'block';
             msg.innerHTML = `<div style="background:#f8d7da; color:#721c24; border-radius:8px; padding:.75rem; font-size:.9rem;">
                 ❌ ${data.error || 'No se pudo interpretar el reporte.'}
             </div>`;
         }
     } catch (error) {
-        msg.style.display = 'block';
-        msg.innerHTML = `<div style="background:#f8d7da; color:#721c24; border-radius:8px; padding:.75rem;">❌ Error de conexión.</div>`;
+        msg.innerHTML = `<div style="background:#f8d7da; color:#721c24; border-radius:8px; padding:.75rem;">❌ Error de conexión. Verifica tu internet.</div>`;
     }
 
-    btn.disabled = false;
-    btn.innerHTML = '🚀 Generar Reporte';
+    if (btn) { btn.disabled = false; btn.innerHTML = '🚀 Generar Reporte'; }
+    if (btnGrab) { btnGrab.disabled = false; }
 }
 </script>
 @endsection
