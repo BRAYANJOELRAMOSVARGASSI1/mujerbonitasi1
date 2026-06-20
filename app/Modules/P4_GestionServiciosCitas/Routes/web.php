@@ -32,3 +32,4 @@ Route::resource('servicios-realizados', ServicioRealizadoController::class)
 
 // CU24 — Gestionar Promociones
 Route::resource('promociones', PromocionController::class)->parameters(['promociones' => 'promocion']);
+Route::post('promociones/{promocion}/enviar', [PromocionController::class, 'enviarCorreos'])->name('promociones.enviar');

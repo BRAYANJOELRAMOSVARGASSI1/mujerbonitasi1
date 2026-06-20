@@ -52,10 +52,19 @@
                             @if($promo->is_vigente)<div class="mt-2 text-center"><span class="badge" style="background:#d4edda; color:#155724; padding:6px 12px; border-radius:12px;">✅ Vigente</span></div>@endif
                         </div>
                         <div class="card-footer" style="background:#f8f9fa; border:none; border-radius:0 0 12px 12px; padding:0.75rem 1.5rem;">
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 flex-wrap">
                                 <a href="{{ route('promociones.show', $promo) }}" class="btn btn-sm" style="background:#17a2b8; color:white; border:none; border-radius:6px;">Ver</a>
                                 @can('editar promociones')<a href="{{ route('promociones.edit', $promo) }}" class="btn btn-sm" style="background:#ffc107; color:#212529; border:none; border-radius:6px;">Editar</a>@endcan
                                 @can('eliminar promociones')<form method="POST" action="{{ route('promociones.destroy', $promo) }}" onsubmit="return confirm('¿Eliminar esta promoción?')">@csrf @method('DELETE')<button class="btn btn-sm" style="background:#dc3545; color:white; border:none; border-radius:6px;">Eliminar</button></form>@endcan
+                                
+                                @if($promo->is_vigente)
+                                    <form method="POST" action="{{ route('promociones.enviar', $promo) }}" onsubmit="return confirm('¿Enviar esta promoción masivamente por correo a todos los clientes?')">
+                                        @csrf
+                                        <button class="btn btn-sm" style="background:#28a745; color:white; border:none; border-radius:6px;">
+                                            <svg class="icon"><use xlink:href="{{ asset('icons/coreui.svg#cil-envelope-closed') }}"></use></svg> Enviar Email
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     </div>

@@ -9,6 +9,8 @@ use App\Modules\P4_GestionServiciosCitas\Models\Servicio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use App\Modules\P6_ReportesComunicaciones\Jobs\EnviarMailingPromocionJob;
+
 /**
  * [CU24] — Gestionar Promociones
  *
@@ -21,7 +23,7 @@ class PromocionController extends Controller
     public function __construct()
     {
         $this->middleware('permission:ver promociones')->only(['index', 'show']);
-        $this->middleware('permission:crear promociones')->only(['create', 'store']);
+        $this->middleware('permission:crear promociones')->only(['create', 'store', 'enviarCorreos']);
         $this->middleware('permission:editar promociones')->only(['edit', 'update']);
         $this->middleware('permission:eliminar promociones')->only(['destroy']);
     }
@@ -164,5 +166,28 @@ class PromocionController extends Controller
         ]);
 
         return redirect()->route('promociones.index')->with('status', 'Promoción eliminada correctamente.');
+    }
+
+    /**
+     * Enviar promoción masivamente por correo [CU19]
+     */
+    public function enviarCorreos(Request $request, Promocion $promocion)
+    {
+        if (!$promocion->is_vigente) {
+            return back()->with('error', 'Solo se pueden enviar promociones vigentes.');
+        }
+
+        // Encolar el trabajo de envío masivo
+        EnviarMailingPromocionJob::dispatch($promocion);
+
+        ActivityLog::create([
+            'user_id'     => Auth::id(),
+            'action'      => 'Envío Masivo de Promoción (Mailing)',
+            'description' => "Envío de correos iniciado para la promoción: {$promocion->nombre}",
+            'ip_address'  => $request->ip() ?? 'No disponible',
+            'browser'     => $request->header('user-agent') ?? 'No disponible',
+        ]);
+
+        return back()->with('status', 'Correos encolados exitosamente. Se están enviando en segundo plano.');
     }
 }
