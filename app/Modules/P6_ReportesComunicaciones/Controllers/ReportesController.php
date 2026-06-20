@@ -502,79 +502,102 @@ class ReportesController extends Controller
     // ─────────────────────────────────────────────────────────
     
     /**
-     * Procesa el audio grabado, transcribe con Whisper,
-     * y obtiene los parámetros del reporte con LLama 3.1
+     * Procesa el audio grabado o texto directo, y obtiene los
+     * parámetros del reporte con LLama 3.1 via Groq.
+     * Acepta:
+     *   - audio (file): transcribe con Whisper primero
+     *   - texto (string): procesa directamente con Llama
      */
     public function procesarAudioReporte(Request $request)
     {
-        $request->validate([
-            'audio' => 'required|file|mimetypes:audio/wav,audio/webm,audio/mpeg,audio/ogg|max:10240',
-        ]);
+        $tieneTexto = $request->filled('texto');
+        $tieneAudio = $request->hasFile('audio');
 
-        $audioFile = $request->file('audio');
+        if (!$tieneTexto && !$tieneAudio) {
+            return response()->json(['error' => 'Debes enviar texto o un archivo de audio.'], 422);
+        }
+
         $groqApiKey = env('GROQ_API_KEY');
-
         if (!$groqApiKey) {
             return response()->json(['error' => 'API Key de Groq no configurada.'], 500);
         }
 
         try {
-            // 1. Transcripción con Whisper (Groq)
-            $audioPath = $audioFile->getPathname();
-            $audioName = $audioFile->getClientOriginalName();
-            if (!str_contains($audioName, '.')) {
-                // Ensure extension is present for Groq API
-                $audioName .= '.webm'; 
-            }
-
-            $responseWhisper = Http::withToken($groqApiKey)
-                ->attach('file', file_get_contents($audioPath), $audioName)
-                ->post('https://api.groq.com/openai/v1/audio/transcriptions', [
-                    'model' => 'whisper-large-v3',
-                    'language' => 'es',
+            // ── Paso 1: Obtener el texto ───────────────────────────
+            if ($tieneTexto) {
+                // Texto plano enviado directamente desde el modal
+                $textoTranscrito = trim($request->input('texto'));
+            } else {
+                // Audio → transcripción con Whisper (Groq)
+                $request->validate([
+                    'audio' => 'required|file|mimetypes:audio/wav,audio/webm,audio/mpeg,audio/ogg|max:10240',
                 ]);
 
-            if (!$responseWhisper->successful()) {
-                Log::error('Error en Whisper', ['res' => $responseWhisper->json()]);
-                return response()->json(['error' => 'Error al transcribir el audio.'], 500);
+                $audioFile = $request->file('audio');
+                $audioPath = $audioFile->getPathname();
+                $audioName = $audioFile->getClientOriginalName();
+                if (!str_contains($audioName, '.')) {
+                    $audioName .= '.webm';
+                }
+
+                $responseWhisper = Http::withToken($groqApiKey)
+                    ->attach('file', file_get_contents($audioPath), $audioName)
+                    ->post('https://api.groq.com/openai/v1/audio/transcriptions', [
+                        'model'    => 'whisper-large-v3',
+                        'language' => 'es',
+                    ]);
+
+                if (!$responseWhisper->successful()) {
+                    Log::error('Error en Whisper', ['res' => $responseWhisper->json()]);
+                    return response()->json(['error' => 'Error al transcribir el audio.'], 500);
+                }
+
+                $textoTranscrito = $responseWhisper->json('text');
+
+                if (empty($textoTranscrito)) {
+                    return response()->json(['error' => 'No se detectó voz o el audio está vacío.'], 400);
+                }
             }
 
-            $textoTranscrito = $responseWhisper->json('text');
+            // ── Paso 2: Extraer intención con Llama 3.1 (Groq) ────
+            $hoy         = Carbon::today()->format('Y-m-d');
+            $inicioMes   = Carbon::now()->startOfMonth()->format('Y-m-d');
+            $finMes      = Carbon::now()->endOfMonth()->format('Y-m-d');
+            $inicioSemana = Carbon::now()->startOfWeek()->format('Y-m-d');
+            $finSemana    = Carbon::now()->endOfWeek()->format('Y-m-d');
+            $inicioMesPasado = Carbon::now()->subMonth()->startOfMonth()->format('Y-m-d');
+            $finMesPasado    = Carbon::now()->subMonth()->endOfMonth()->format('Y-m-d');
 
-            if (empty($textoTranscrito)) {
-                return response()->json(['error' => 'No se detectó voz o el audio está vacío.'], 400);
-            }
-
-            // 2. Extracción de intenciones con Llama 3.1 (Groq)
             $prompt = "Eres un asistente inteligente para un sistema de peluquería/spa llamado Mujer Bonita. " .
-                      "Analiza el siguiente texto y extrae la intención de reporte solicitada por el usuario. " .
+                      "Analiza el siguiente texto y extrae la intención de reporte solicitada. " .
                       "Tipos de reporte válidos: 'ventas', 'clientes', 'inventario', 'servicios', 'promociones', 'general'. " .
-                      "Si no especifica, usa 'general'. " .
-                      "Extrae la fecha de inicio (fecha_inicio) y fecha de fin (fecha_fin) en formato YYYY-MM-DD si es posible. " .
-                      "Si dice 'hoy', usa " . Carbon::today()->format('Y-m-d') . ". " .
-                      "Si dice 'mes pasado', calcula las fechas del mes pasado. " .
-                      "Si dice 'este mes', usa desde " . Carbon::now()->startOfMonth()->format('Y-m-d') . " hasta " . Carbon::now()->endOfMonth()->format('Y-m-d') . ". " .
-                      "Responde ÚNICAMENTE con un objeto JSON en el siguiente formato, sin markdown ni explicaciones adicionales: " .
-                      "{\"tipo\": \"ventas\", \"fecha_inicio\": \"2023-01-01\", \"fecha_fin\": \"2023-01-31\"}";
+                      "Si no especifica tipo, usa 'general'. " .
+                      "Extrae fecha_inicio y fecha_fin en formato YYYY-MM-DD. " .
+                      "Fechas de referencia: hoy=$hoy, inicio_mes=$inicioMes, fin_mes=$finMes, " .
+                      "inicio_semana=$inicioSemana, fin_semana=$finSemana, " .
+                      "inicio_mes_pasado=$inicioMesPasado, fin_mes_pasado=$finMesPasado. " .
+                      "Si no menciona fechas, usa inicio_mes y fin_mes. " .
+                      "Responde ÚNICAMENTE con JSON, sin markdown: " .
+                      "{\"tipo\": \"ventas\", \"fecha_inicio\": \"2024-06-01\", \"fecha_fin\": \"2024-06-30\"}";
 
             $responseLlama = Http::withToken($groqApiKey)
                 ->post('https://api.groq.com/openai/v1/chat/completions', [
-                    'model' => 'llama-3.1-70b-versatile',
-                    'messages' => [
+                    'model'           => 'llama-3.1-70b-versatile',
+                    'messages'        => [
                         ['role' => 'system', 'content' => $prompt],
-                        ['role' => 'user', 'content' => $textoTranscrito]
+                        ['role' => 'user',   'content' => $textoTranscrito]
                     ],
-                    'temperature' => 0.1,
+                    'temperature'     => 0.1,
                     'response_format' => ['type' => 'json_object']
                 ]);
 
             if (!$responseLlama->successful()) {
                 Log::error('Error en Llama', ['res' => $responseLlama->json()]);
-                return response()->json(['error' => 'Error al analizar el comando de voz.'], 500);
+                return response()->json(['error' => 'Error al analizar el comando.'], 500);
             }
 
-            $contenido = $responseLlama->json('choices.0.message.content');
-            $datosParseados = json_decode($contenido, true);
+            $contenido       = $responseLlama->json('choices.0.message.content');
+            $datosParseados  = json_decode($contenido, true);
 
             if (!$datosParseados || !isset($datosParseados['tipo'])) {
                 return response()->json(['error' => 'No se pudo entender el tipo de reporte solicitado.'], 400);
@@ -588,13 +611,13 @@ class ReportesController extends Controller
 
             return response()->json([
                 'success' => true,
-                'texto' => $textoTranscrito,
+                'texto'   => $textoTranscrito,
                 'reporte' => $datosParseados
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error procesando audio', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Ocurrió un error inesperado al procesar el audio.'], 500);
+            Log::error('Error procesando reporte IA', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Ocurrió un error inesperado.'], 500);
         }
     }
 }

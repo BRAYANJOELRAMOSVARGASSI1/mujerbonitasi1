@@ -339,8 +339,8 @@
             <span class="periodo-badge">
                 📅 {{ $fechaInicio->format('d/m/Y') }} — {{ $fechaFin->format('d/m/Y') }}
             </span>
-            <button id="btnVoice" class="btn-voice" type="button">
-                🎤 Reporte por Voz
+            <button id="btnVoice" class="btn-voice" type="button" onclick="abrirModalReporte()">
+                🤖 Reporte IA
             </button>
             <a href="{{ route('reportes.pdf', 'general') }}?fecha_inicio={{ $fechaInicio->toDateString() }}&fecha_fin={{ $fechaFin->toDateString() }}"
                class="btn-export-pdf">
@@ -455,9 +455,9 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link {{ $loop->first ? 'active' : '' }}"
                 id="tab-{{ $tab['id'] }}"
-                data-bs-toggle="tab"
-                data-bs-target="#pane-{{ $tab['id'] }}"
-                type="button" role="tab">
+                data-tab-target="pane-{{ $tab['id'] }}"
+                type="button" role="tab"
+                onclick="switchTab('pane-{{ $tab['id'] }}', this)">
             {{ $tab['icon'] }} {{ $tab['label'] }}
         </button>
     </li>
@@ -1109,6 +1109,34 @@
 
 </div>{{-- end tab-content --}}
 
+{{-- ─── MODAL REPORTE IA ──────────────────────────────────────── --}}
+<div id="modalReporte" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:16px; padding:2rem; max-width:500px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h5 style="margin:0; color:#381432;">🤖 Generador de Reportes con IA</h5>
+            <button onclick="cerrarModalReporte()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#888;">×</button>
+        </div>
+        <p style="color:#666; font-size:.9rem; margin-bottom:1rem;">Escribe en lenguaje natural qué reporte necesitas:</p>
+        <div style="background:#f8f0f6; border-radius:8px; padding:1rem; margin-bottom:1rem; font-size:.85rem; color:#662a5b;">
+            💡 Ejemplos: <em>"ventas de este mes"</em>, <em>"clientes de hoy"</em>, <em>"inventario general"</em>, <em>"servicios de la semana"</em>
+        </div>
+        <textarea id="textoReporteIA" rows="3" placeholder="Ej: quiero un reporte de ventas del mes pasado..." 
+                  style="width:100%; border:2px solid #e8d5e5; border-radius:8px; padding:.75rem; font-size:.9rem; resize:none; outline:none;"
+                  onkeydown="if(event.ctrlKey&&event.key==='Enter') procesarTextoReporte();"></textarea>
+        <div style="display:flex; gap:.75rem; margin-top:1rem;">
+            <button onclick="procesarTextoReporte()" id="btnProcesarIA"
+                    style="flex:1; background:#662a5b; color:white; border:none; border-radius:8px; padding:.75rem; font-weight:600; cursor:pointer; font-size:.9rem;">
+                🚀 Generar Reporte
+            </button>
+            <button onclick="cerrarModalReporte()"
+                    style="background:#f0e8ef; color:#662a5b; border:none; border-radius:8px; padding:.75rem 1.25rem; font-weight:600; cursor:pointer;">
+                Cancelar
+            </button>
+        </div>
+        <div id="msgReporteIA" style="margin-top:1rem; display:none;"></div>
+    </div>
+</div>
+
 {{-- ─── CHART.JS ────────────────────────────────────────────────── --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
@@ -1224,91 +1252,85 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Grabación de Audio para Reportes ──────────────────────
-    const btnVoice = document.getElementById('btnVoice');
-    let mediaRecorder;
-    let audioChunks = [];
-
-    if (btnVoice) {
-        btnVoice.addEventListener('click', async () => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                btnVoice.classList.remove('recording');
-                btnVoice.innerHTML = '⏳ Procesando...';
-                btnVoice.disabled = true;
-                return;
-            }
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
-                };
-
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const formData = new FormData();
-                    formData.append('audio', audioBlob, 'reporte_voice.webm');
-                    // Necesitamos CSRF token, asumiendo que está en el meta tag o lo pasamos directo:
-                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
-                                   || document.querySelector('input[name="_token"]')?.value;
-                    if(csrfToken) formData.append('_token', csrfToken);
-
-                    try {
-                        const response = await fetch('{{ route('reportes.voice') }}', {
-                            method: 'POST',
-                            body: formData,
-                            headers: { 'Accept': 'application/json' }
-                        });
-
-                        const data = await response.json();
-                        if (data.success) {
-                            // Mostrar una confirmación y redireccionar
-                            const toastHTML = `<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
-                                <div class="toast align-items-center text-white bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
-                                    <div class="d-flex">
-                                    <div class="toast-body">
-                                        Entendido: "${data.texto}"<br>
-                                        Generando reporte de <b>${data.reporte.tipo.toUpperCase()}</b>...
-                                    </div>
-                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                                    </div>
-                                </div>
-                            </div>`;
-                            document.body.insertAdjacentHTML('beforeend', toastHTML);
-
-                            setTimeout(() => {
-                                let url = `/reportes/pdf/${data.reporte.tipo}?`;
-                                if(data.reporte.fecha_inicio) url += `fecha_inicio=${data.reporte.fecha_inicio}&`;
-                                if(data.reporte.fecha_fin) url += `fecha_fin=${data.reporte.fecha_fin}`;
-                                window.location.href = url;
-                            }, 2000);
-                        } else {
-                            alert('Error: ' + (data.error || 'No se pudo procesar el comando.'));
-                        }
-                    } catch (error) {
-                        alert('Error de conexión con el servidor.');
-                    }
-
-                    btnVoice.innerHTML = '🎤 Reporte por Voz';
-                    btnVoice.disabled = false;
-                    // Detener micrófono
-                    stream.getTracks().forEach(track => track.stop());
-                };
-
-                mediaRecorder.start();
-                btnVoice.classList.add('recording');
-                btnVoice.innerHTML = '🛑 Detener Grabación';
-
-            } catch (err) {
-                console.error(err);
-                alert('No se pudo acceder al micrófono. Verifica los permisos.');
-            }
-        });
-    }
 });
+
+// ── Tab switching manual (sin Bootstrap JS) ──────────────────
+function switchTab(targetId, btn) {
+    // Ocultar todos los panes
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.remove('show', 'active');
+    });
+    // Desactivar todos los botones
+    document.querySelectorAll('#reportesTab .nav-link').forEach(b => {
+        b.classList.remove('active');
+    });
+    // Activar el pane y botón seleccionado
+    const pane = document.getElementById(targetId);
+    if (pane) { pane.classList.add('show', 'active'); }
+    if (btn)  { btn.classList.add('active'); }
+}
+
+// ── Modal Reporte IA ─────────────────────────────────────────
+function abrirModalReporte() {
+    document.getElementById('modalReporte').style.display = 'flex';
+    setTimeout(() => document.getElementById('textoReporteIA').focus(), 100);
+}
+function cerrarModalReporte() {
+    document.getElementById('modalReporte').style.display = 'none';
+    document.getElementById('textoReporteIA').value = '';
+    document.getElementById('msgReporteIA').style.display = 'none';
+}
+
+async function procesarTextoReporte() {
+    const texto = document.getElementById('textoReporteIA').value.trim();
+    if (!texto) { alert('Por favor escribe qué reporte necesitas.'); return; }
+
+    const btn = document.getElementById('btnProcesarIA');
+    const msg = document.getElementById('msgReporteIA');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Procesando con IA...';
+    msg.style.display = 'none';
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    try {
+        const formData = new FormData();
+        formData.append('texto', texto);
+        formData.append('_token', csrfToken || '');
+
+        const response = await fetch('{{ route("reportes.voice") }}', {
+            method: 'POST',
+            body: formData,
+            headers: { 'Accept': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            msg.style.display = 'block';
+            msg.innerHTML = `<div style="background:#d4edda; color:#155724; border-radius:8px; padding:.75rem; font-size:.9rem;">
+                ✅ <strong>Entendido:</strong> "${data.texto}"<br>
+                Generando reporte de <strong>${data.reporte.tipo.toUpperCase()}</strong>...
+            </div>`;
+            setTimeout(() => {
+                let url = `/reportes/pdf/${data.reporte.tipo}?`;
+                if (data.reporte.fecha_inicio) url += `fecha_inicio=${data.reporte.fecha_inicio}&`;
+                if (data.reporte.fecha_fin)    url += `fecha_fin=${data.reporte.fecha_fin}`;
+                window.location.href = url;
+            }, 2000);
+        } else {
+            msg.style.display = 'block';
+            msg.innerHTML = `<div style="background:#f8d7da; color:#721c24; border-radius:8px; padding:.75rem; font-size:.9rem;">
+                ❌ ${data.error || 'No se pudo interpretar el reporte.'}
+            </div>`;
+        }
+    } catch (error) {
+        msg.style.display = 'block';
+        msg.innerHTML = `<div style="background:#f8d7da; color:#721c24; border-radius:8px; padding:.75rem;">❌ Error de conexión.</div>`;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Generar Reporte';
+}
 </script>
 @endsection
