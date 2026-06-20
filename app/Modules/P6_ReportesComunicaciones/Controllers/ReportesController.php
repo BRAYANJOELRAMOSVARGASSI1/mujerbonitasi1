@@ -586,16 +586,17 @@ class ReportesController extends Controller
                       "Responde ÚNICAMENTE con JSON, sin markdown: " .
                       "{\"tipo\": \"ventas\", \"fecha_inicio\": \"2024-06-01\", \"fecha_fin\": \"2024-06-30\"}";
 
-            $responseLlama = Http::withToken($groqApiKey)
-                ->post('https://api.groq.com/openai/v1/chat/completions', [
-                    'model'           => 'llama-3.1-70b-versatile',
-                    'messages'        => [
-                        ['role' => 'system', 'content' => $prompt],
-                        ['role' => 'user',   'content' => $textoTranscrito]
-                    ],
-                    'temperature'     => 0.1,
-                    'response_format' => ['type' => 'json_object']
-                ]);
+                $responseLlama = Http::withToken($groqApiKey)
+                    ->timeout(30)
+                    ->post('https://api.groq.com/openai/v1/chat/completions', [
+                        'model'           => 'llama-3.3-70b-versatile',
+                        'messages'        => [
+                            ['role' => 'system', 'content' => $prompt],
+                            ['role' => 'user',   'content' => $textoTranscrito]
+                        ],
+                        'temperature'     => 0.1,
+                        'response_format' => ['type' => 'json_object']
+                    ]);
 
             if (!$responseLlama->successful()) {
                 Log::error('Error en Llama', ['res' => $responseLlama->json()]);
