@@ -5,6 +5,8 @@ namespace App\Modules\P6_ReportesComunicaciones\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 // Modelos del sistema
@@ -68,7 +70,7 @@ class ReportesController extends Controller
         $clienteId   = $request->input('cliente_id');
 
         // ── KPIs GENERALES ──────────────────────────────────────
-        $kpis = $this->buildKpis($fechaInicio, $fechaFin);
+        $kpis = $this->buildKpis($fechaInicio, $fechaFin, $estilistaId, $clienteId);
 
         // ── SECCIÓN VENTAS ───────────────────────────────────────
         $ventas = $this->buildVentas($fechaInicio, $fechaFin, $estilistaId, $clienteId);
@@ -80,13 +82,13 @@ class ReportesController extends Controller
         $inventario = $this->buildInventario();
 
         // ── SECCIÓN SERVICIOS & CITAS ────────────────────────────
-        $servicios = $this->buildServicios($fechaInicio, $fechaFin);
+        $servicios = $this->buildServicios($fechaInicio, $fechaFin, $estilistaId, $clienteId);
 
         // ── SECCIÓN PAGOS ONLINE/MANUALES ────────────────────────
-        $pagos = $this->buildPagos($fechaInicio, $fechaFin);
+        $pagos = $this->buildPagos($fechaInicio, $fechaFin, $estilistaId, $clienteId);
 
         // ── SECCIÓN PROMOCIONES & COMISIONES ─────────────────────
-        $promociones = $this->buildPromociones($fechaInicio, $fechaFin);
+        $promociones = $this->buildPromociones($fechaInicio, $fechaFin, $estilistaId);
 
         // ── DATOS PARA FILTROS (selects) ─────────────────────────
         $listaEstilistas = Estilista::activos()->orderBy('nombre')->get();
@@ -135,12 +137,12 @@ class ReportesController extends Controller
             : Carbon::now()->endOfDay();
 
         $datos = match ($tipo) {
-            'ventas'      => $this->buildVentas($fechaInicio, $fechaFin),
+            'ventas'      => $this->buildVentas($fechaInicio, $fechaFin, $request->estilista_id, $request->cliente_id),
             'clientes'    => $this->buildClientes($fechaInicio, $fechaFin),
             'inventario'  => $this->buildInventario(),
-            'servicios'   => $this->buildServicios($fechaInicio, $fechaFin),
-            'promociones' => $this->buildPromociones($fechaInicio, $fechaFin),
-            'general'     => $this->buildGeneral($fechaInicio, $fechaFin),
+            'servicios'   => $this->buildServicios($fechaInicio, $fechaFin, $request->estilista_id, $request->cliente_id),
+            'promociones' => $this->buildPromociones($fechaInicio, $fechaFin, $request->estilista_id),
+            'general'     => $this->buildGeneral($fechaInicio, $fechaFin, $request->estilista_id, $request->cliente_id),
             default       => abort(404, 'Tipo de reporte no válido'),
         };
 
@@ -191,23 +193,30 @@ class ReportesController extends Controller
     // ─────────────────────────────────────────────────────────
 
     /** KPIs generales del negocio. */
-    private function buildKpis(Carbon $inicio, Carbon $fin): array
+    private function buildKpis(Carbon $inicio, Carbon $fin, $estilistaId = null, $clienteId = null): array
     {
-        $ingresosPeriodo = ServicioRealizado::whereBetween('fecha_realizacion', [$inicio, $fin])
-            ->sum('precio_cobrado');
+        $ingresosQuery = ServicioRealizado::whereBetween('fecha_realizacion', [$inicio, $fin]);
+        if ($estilistaId) $ingresosQuery->where('estilista_id', $estilistaId);
+        if ($clienteId) $ingresosQuery->where('cliente_id', $clienteId);
+        $ingresosPeriodo = $ingresosQuery->sum('precio_cobrado');
 
-        $pagosAdelantados = \App\Modules\P5_PagosFacturacion\Models\Pago::where('estado_pago', 'completado')
+        $pagosAdelantadosQuery = \App\Modules\P5_PagosFacturacion\Models\Pago::where('estado_pago', 'completado')
             ->whereBetween('updated_at', [$inicio, $fin])
-            ->whereHas('cita', function($q) {
+            ->whereHas('cita', function($q) use ($estilistaId, $clienteId) {
                 $q->whereDoesntHave('servicioRealizado');
-            })->sum('monto');
+                if ($estilistaId) $q->where('estilista_id', $estilistaId);
+                if ($clienteId) $q->where('cliente_id', $clienteId);
+            });
+        $pagosAdelantados = $pagosAdelantadosQuery->sum('monto');
             
         $ingresosPeriodo += $pagosAdelantados;
 
-        $serviciosRealizadosPeriodo = ServicioRealizado::whereBetween('fecha_realizacion', [$inicio, $fin])
-            ->count();
+        $serviciosRealizadosPeriodo = $ingresosQuery->count();
 
-        $citasPeriodo = Cita::whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])->count();
+        $citasQuery = Cita::whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()]);
+        if ($estilistaId) $citasQuery->where('estilista_id', $estilistaId);
+        if ($clienteId) $citasQuery->where('cliente_id', $clienteId);
+        $citasPeriodo = $citasQuery->count();
 
         $clientesTotales  = Cliente::count();
         $clientesActivos  = Cliente::activos()->count();
@@ -329,25 +338,33 @@ class ReportesController extends Controller
     }
 
     /** Datos para la sección de Servicios & Citas. */
-    private function buildServicios(Carbon $inicio, Carbon $fin): array
+    private function buildServicios(Carbon $inicio, Carbon $fin, $estilistaId = null, $clienteId = null): array
     {
-        $citas = Cita::with(['cliente', 'estilista', 'servicio'])
-            ->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])
-            ->orderByDesc('fecha')
+        $query = Cita::with(['cliente', 'estilista', 'servicio'])
+            ->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()]);
+
+        if ($estilistaId) $query->where('estilista_id', $estilistaId);
+        if ($clienteId) $query->where('cliente_id', $clienteId);
+
+        $citas = (clone $query)->orderByDesc('fecha')
             ->paginate(15, ['*'], 'page_citas');
 
         // Distribución por estado
-        $porEstado = Cita::whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])
+        $porEstado = (clone $query)
             ->select('estado', DB::raw('COUNT(*) as total'))
             ->groupBy('estado')
             ->pluck('total', 'estado');
 
         // Top servicios más solicitados
-        $topServicios = Servicio::withCount(['citas as total_citas' => function ($q) use ($inicio, $fin) {
+        $topServiciosQuery = Servicio::withCount(['citas as total_citas' => function ($q) use ($inicio, $fin, $estilistaId, $clienteId) {
             $q->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()]);
-        }])->orderByDesc('total_citas')->limit(5)->get();
+            if ($estilistaId) $q->where('estilista_id', $estilistaId);
+            if ($clienteId) $q->where('cliente_id', $clienteId);
+        }]);
+        
+        $topServicios = $topServiciosQuery->orderByDesc('total_citas')->limit(5)->get();
 
-        $totalCitas    = Cita::whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()])->count();
+        $totalCitas    = (clone $query)->count();
         $citasCompletadas = $porEstado['completada'] ?? 0;
         $citasCanceladas  = $porEstado['cancelada'] ?? 0;
         $citasPendientes  = $porEstado['pendiente'] ?? 0;
@@ -356,7 +373,7 @@ class ReportesController extends Controller
     }
 
     /** Datos para la sección de Promociones & Comisiones. */
-    private function buildPromociones(Carbon $inicio, Carbon $fin): array
+    private function buildPromociones(Carbon $inicio, Carbon $fin, $estilistaId = null): array
     {
         $promociones = Promocion::with('servicios')
             ->orderByDesc('fecha_inicio')
@@ -366,13 +383,17 @@ class ReportesController extends Controller
         $vencidas = $promociones->filter(fn($p) => $p->fecha_fin < now())->count();
         $futuras  = $promociones->filter(fn($p) => $p->fecha_inicio > now())->count();
 
-        $comisiones = Comision::with('estilista')
+        $comisionesQuery = Comision::with('estilista')
             ->where(function ($q) use ($inicio, $fin) {
                 $q->whereBetween('periodo_inicio', [$inicio, $fin])
                   ->orWhereBetween('periodo_fin', [$inicio, $fin]);
-            })
-            ->orderByDesc('periodo_fin')
-            ->get();
+            });
+
+        if ($estilistaId) {
+            $comisionesQuery->where('estilista_id', $estilistaId);
+        }
+
+        $comisiones = $comisionesQuery->orderByDesc('periodo_fin')->get();
 
         $totalComisionesPagadas  = $comisiones->where('estado', 'aprobada')->sum('total_comision');
         $totalComisionesPendientes = $comisiones->where('estado', 'pendiente')->sum('total_comision');
@@ -389,10 +410,14 @@ class ReportesController extends Controller
     }
 
     /** Datos para la sección de Pagos. */
-    private function buildPagos(Carbon $inicio, Carbon $fin): array
+    private function buildPagos(Carbon $inicio, Carbon $fin, $estilistaId = null, $clienteId = null): array
     {
         $pagosQuery = \App\Modules\P5_PagosFacturacion\Models\Pago::with(['cita.cliente', 'cita.servicio'])
             ->whereBetween('updated_at', [$inicio, $fin])
+            ->whereHas('cita', function($q) use ($estilistaId, $clienteId) {
+                if ($estilistaId) $q->where('estilista_id', $estilistaId);
+                if ($clienteId) $q->where('cliente_id', $clienteId);
+            })
             ->orderByDesc('updated_at');
 
         $listaPagos = $pagosQuery->get();
@@ -408,14 +433,14 @@ class ReportesController extends Controller
     }
 
     /** Datos completos para reporte general. */
-    private function buildGeneral(Carbon $inicio, Carbon $fin): array
+    private function buildGeneral(Carbon $inicio, Carbon $fin, $estilistaId = null, $clienteId = null): array
     {
         return [
-            'kpis'       => $this->buildKpis($inicio, $fin),
-            'ventas'     => $this->buildVentas($inicio, $fin),
+            'kpis'       => $this->buildKpis($inicio, $fin, $estilistaId, $clienteId),
+            'ventas'     => $this->buildVentas($inicio, $fin, $estilistaId, $clienteId),
             'clientes'   => $this->buildClientes($inicio, $fin),
             'inventario' => $this->buildInventario(),
-            'servicios'  => $this->buildServicios($inicio, $fin),
+            'servicios'  => $this->buildServicios($inicio, $fin, $estilistaId, $clienteId),
         ];
     }
 
@@ -470,5 +495,106 @@ class ReportesController extends Controller
             'labels' => $datos->pluck('estado')->toArray(),
             'data'   => $datos->pluck('total')->toArray(),
         ];
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // GENERACIÓN DE REPORTES POR VOZ (API GROQ)
+    // ─────────────────────────────────────────────────────────
+    
+    /**
+     * Procesa el audio grabado, transcribe con Whisper,
+     * y obtiene los parámetros del reporte con LLama 3.1
+     */
+    public function procesarAudioReporte(Request $request)
+    {
+        $request->validate([
+            'audio' => 'required|file|mimetypes:audio/wav,audio/webm,audio/mpeg,audio/ogg|max:10240',
+        ]);
+
+        $audioFile = $request->file('audio');
+        $groqApiKey = env('GROQ_API_KEY');
+
+        if (!$groqApiKey) {
+            return response()->json(['error' => 'API Key de Groq no configurada.'], 500);
+        }
+
+        try {
+            // 1. Transcripción con Whisper (Groq)
+            $audioPath = $audioFile->getPathname();
+            $audioName = $audioFile->getClientOriginalName();
+            if (!str_contains($audioName, '.')) {
+                // Ensure extension is present for Groq API
+                $audioName .= '.webm'; 
+            }
+
+            $responseWhisper = Http::withToken($groqApiKey)
+                ->attach('file', file_get_contents($audioPath), $audioName)
+                ->post('https://api.groq.com/openai/v1/audio/transcriptions', [
+                    'model' => 'whisper-large-v3',
+                    'language' => 'es',
+                ]);
+
+            if (!$responseWhisper->successful()) {
+                Log::error('Error en Whisper', ['res' => $responseWhisper->json()]);
+                return response()->json(['error' => 'Error al transcribir el audio.'], 500);
+            }
+
+            $textoTranscrito = $responseWhisper->json('text');
+
+            if (empty($textoTranscrito)) {
+                return response()->json(['error' => 'No se detectó voz o el audio está vacío.'], 400);
+            }
+
+            // 2. Extracción de intenciones con Llama 3.1 (Groq)
+            $prompt = "Eres un asistente inteligente para un sistema de peluquería/spa llamado Mujer Bonita. " .
+                      "Analiza el siguiente texto y extrae la intención de reporte solicitada por el usuario. " .
+                      "Tipos de reporte válidos: 'ventas', 'clientes', 'inventario', 'servicios', 'promociones', 'general'. " .
+                      "Si no especifica, usa 'general'. " .
+                      "Extrae la fecha de inicio (fecha_inicio) y fecha de fin (fecha_fin) en formato YYYY-MM-DD si es posible. " .
+                      "Si dice 'hoy', usa " . Carbon::today()->format('Y-m-d') . ". " .
+                      "Si dice 'mes pasado', calcula las fechas del mes pasado. " .
+                      "Si dice 'este mes', usa desde " . Carbon::now()->startOfMonth()->format('Y-m-d') . " hasta " . Carbon::now()->endOfMonth()->format('Y-m-d') . ". " .
+                      "Responde ÚNICAMENTE con un objeto JSON en el siguiente formato, sin markdown ni explicaciones adicionales: " .
+                      "{\"tipo\": \"ventas\", \"fecha_inicio\": \"2023-01-01\", \"fecha_fin\": \"2023-01-31\"}";
+
+            $responseLlama = Http::withToken($groqApiKey)
+                ->post('https://api.groq.com/openai/v1/chat/completions', [
+                    'model' => 'llama-3.1-70b-versatile',
+                    'messages' => [
+                        ['role' => 'system', 'content' => $prompt],
+                        ['role' => 'user', 'content' => $textoTranscrito]
+                    ],
+                    'temperature' => 0.1,
+                    'response_format' => ['type' => 'json_object']
+                ]);
+
+            if (!$responseLlama->successful()) {
+                Log::error('Error en Llama', ['res' => $responseLlama->json()]);
+                return response()->json(['error' => 'Error al analizar el comando de voz.'], 500);
+            }
+
+            $contenido = $responseLlama->json('choices.0.message.content');
+            $datosParseados = json_decode($contenido, true);
+
+            if (!$datosParseados || !isset($datosParseados['tipo'])) {
+                return response()->json(['error' => 'No se pudo entender el tipo de reporte solicitado.'], 400);
+            }
+
+            // Validar tipo
+            $tiposValidos = ['ventas', 'clientes', 'inventario', 'servicios', 'promociones', 'general'];
+            if (!in_array($datosParseados['tipo'], $tiposValidos)) {
+                $datosParseados['tipo'] = 'general';
+            }
+
+            return response()->json([
+                'success' => true,
+                'texto' => $textoTranscrito,
+                'reporte' => $datosParseados
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error procesando audio', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Ocurrió un error inesperado al procesar el audio.'], 500);
+        }
     }
 }

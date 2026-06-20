@@ -28,4 +28,7 @@ Route::prefix('reportes')->name('reportes.')->group(function () {
     Route::get('/excel/{tipo}', [ReportesController::class, 'exportarExcel'])
         ->name('excel')
         ->where('tipo', 'ventas|clientes|inventario|servicios|promociones');
+
+    // Generación de reporte por voz
+    Route::post('/voice', [ReportesController::class, 'procesarAudioReporte'])->name('voice');
 });

@@ -188,6 +188,30 @@
 }
 .btn-export-excel:hover { background: #146c43; color: white; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(25,135,84,0.3); }
 
+/* ── Botón de Voz ── */
+.btn-voice {
+    background: #4a148c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.45rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.btn-voice:hover { background: #38006b; color: white; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(74,20,140,0.3); }
+.btn-voice.recording { background: #d32f2f; animation: pulse 1.5s infinite; }
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+}
+
 /* ── Tablas ── */
 .tabla-reportes {
     font-size: 0.875rem;
@@ -315,6 +339,9 @@
             <span class="periodo-badge">
                 📅 {{ $fechaInicio->format('d/m/Y') }} — {{ $fechaFin->format('d/m/Y') }}
             </span>
+            <button id="btnVoice" class="btn-voice" type="button">
+                🎤 Reporte por Voz
+            </button>
             <a href="{{ route('reportes.pdf', 'general') }}?fecha_inicio={{ $fechaInicio->toDateString() }}&fecha_fin={{ $fechaFin->toDateString() }}"
                class="btn-export-pdf">
                 📄 PDF General
@@ -1193,6 +1220,92 @@ document.addEventListener('DOMContentLoaded', function () {
                 scales: {
                     x: { ticks: { callback: v => '₡' + v.toLocaleString() } }
                 }
+            }
+        });
+    }
+
+    // ── Grabación de Audio para Reportes ──────────────────────
+    const btnVoice = document.getElementById('btnVoice');
+    let mediaRecorder;
+    let audioChunks = [];
+
+    if (btnVoice) {
+        btnVoice.addEventListener('click', async () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                btnVoice.classList.remove('recording');
+                btnVoice.innerHTML = '⏳ Procesando...';
+                btnVoice.disabled = true;
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob, 'reporte_voice.webm');
+                    // Necesitamos CSRF token, asumiendo que está en el meta tag o lo pasamos directo:
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
+                                   || document.querySelector('input[name="_token"]')?.value;
+                    if(csrfToken) formData.append('_token', csrfToken);
+
+                    try {
+                        const response = await fetch('{{ route('reportes.voice') }}', {
+                            method: 'POST',
+                            body: formData,
+                            headers: { 'Accept': 'application/json' }
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            // Mostrar una confirmación y redireccionar
+                            const toastHTML = `<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+                                <div class="toast align-items-center text-white bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+                                    <div class="d-flex">
+                                    <div class="toast-body">
+                                        Entendido: "${data.texto}"<br>
+                                        Generando reporte de <b>${data.reporte.tipo.toUpperCase()}</b>...
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                    </div>
+                                </div>
+                            </div>`;
+                            document.body.insertAdjacentHTML('beforeend', toastHTML);
+
+                            setTimeout(() => {
+                                let url = `/reportes/pdf/${data.reporte.tipo}?`;
+                                if(data.reporte.fecha_inicio) url += `fecha_inicio=${data.reporte.fecha_inicio}&`;
+                                if(data.reporte.fecha_fin) url += `fecha_fin=${data.reporte.fecha_fin}`;
+                                window.location.href = url;
+                            }, 2000);
+                        } else {
+                            alert('Error: ' + (data.error || 'No se pudo procesar el comando.'));
+                        }
+                    } catch (error) {
+                        alert('Error de conexión con el servidor.');
+                    }
+
+                    btnVoice.innerHTML = '🎤 Reporte por Voz';
+                    btnVoice.disabled = false;
+                    // Detener micrófono
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                btnVoice.classList.add('recording');
+                btnVoice.innerHTML = '🛑 Detener Grabación';
+
+            } catch (err) {
+                console.error(err);
+                alert('No se pudo acceder al micrófono. Verifica los permisos.');
             }
         });
     }
