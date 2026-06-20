@@ -223,6 +223,12 @@ class ReportesController extends Controller
         $estilistasTotales = Estilista::activos()->count();
         $productosBajoStock = Producto::stockBajo()->count();
 
+        // Validar que venga audio o texto
+        request()->validate([
+            'audio' => 'nullable|file',
+            'texto' => 'nullable|string'
+        ]);
+
         return compact(
             'ingresosPeriodo',
             'serviciosRealizadosPeriodo',
@@ -530,7 +536,7 @@ class ReportesController extends Controller
             } else {
                 // Audio → transcripción con Whisper (Groq)
                 $request->validate([
-                    'audio' => 'required|file|mimetypes:audio/wav,audio/webm,audio/mpeg,audio/ogg|max:10240',
+                    'audio' => 'required|file|max:10240',
                 ]);
 
                 $audioFile = $request->file('audio');
