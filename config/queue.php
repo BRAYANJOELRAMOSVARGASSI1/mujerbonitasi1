@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'database'),
+    'default' => 'sync', // Forzado a sync para funcionar sin Worker en AWS
 
     /*
     |--------------------------------------------------------------------------

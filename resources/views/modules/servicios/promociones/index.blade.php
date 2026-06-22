@@ -57,6 +57,7 @@
                                 @can('editar promociones')<a href="{{ route('promociones.edit', $promo) }}" class="btn btn-sm" style="background:#ffc107; color:#212529; border:none; border-radius:6px;">Editar</a>@endcan
                                 @can('eliminar promociones')<form method="POST" action="{{ route('promociones.destroy', $promo) }}" onsubmit="return confirm('¿Eliminar esta promoción?')">@csrf @method('DELETE')<button class="btn btn-sm" style="background:#dc3545; color:white; border:none; border-radius:6px;">Eliminar</button></form>@endcan
                                 
+                                @can('crear promociones')
                                 @if($promo->is_vigente)
                                     <form method="POST" action="{{ route('promociones.enviar', $promo) }}" onsubmit="return confirm('¿Enviar esta promoción masivamente por correo a todos los clientes?')">
                                         @csrf
@@ -65,6 +66,7 @@
                                         </button>
                                     </form>
                                 @endif
+                                @endcan
                             </div>
                         </div>
                     </div>
