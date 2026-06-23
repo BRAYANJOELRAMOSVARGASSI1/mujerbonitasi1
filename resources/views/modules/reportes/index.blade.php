@@ -907,7 +907,7 @@
         <div class="col-md-3">
             <div class="sub-kpi" style="background:#cce5ff;">
                 <div class="valor" style="color:#004085;">₡{{ number_format($pagos['totalOnline'], 2, ',', '.') }}</div>
-                <div class="etiqueta">Total Stripe</div>
+                <div class="etiqueta">Total Online</div>
             </div>
         </div>
         <div class="col-md-3">
