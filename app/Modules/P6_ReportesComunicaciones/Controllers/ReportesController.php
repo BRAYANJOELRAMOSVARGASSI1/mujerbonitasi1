@@ -128,6 +128,9 @@ class ReportesController extends Controller
      */
     public function exportarPdf(Request $request, string $tipo)
     {
+        ini_set('max_execution_time', '300');
+        ini_set('memory_limit', '512M');
+
         $fechaInicio = $request->filled('fecha_inicio')
             ? Carbon::parse($request->fecha_inicio)->startOfDay()
             : Carbon::now()->startOfMonth();
