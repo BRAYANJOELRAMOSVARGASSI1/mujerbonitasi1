@@ -40,6 +40,7 @@
     height: 300px;
     background: rgba(255,255,255,0.05);
     border-radius: 50%;
+    pointer-events: none;
 }
 .reportes-header h1 {
     font-size: 1.8rem;
