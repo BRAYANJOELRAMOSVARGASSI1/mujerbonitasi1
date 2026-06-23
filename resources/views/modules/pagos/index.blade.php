@@ -13,7 +13,7 @@
                 <div class="card-body">
                     <!-- KPIs -->
                     <div class="row mb-4">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="card bg-success text-white">
                                 <div class="card-body">
                                     <h5 class="text-white">Total Cobrado</h5>
@@ -21,7 +21,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="card bg-warning text-white">
                                 <div class="card-body">
                                     <h5 class="text-white">Total Pendiente</h5>
@@ -29,15 +29,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card bg-info text-white">
-                                <div class="card-body">
-                                    <h5 class="text-white">Pagos Stripe</h5>
-                                    <h3>${{ number_format($kpis['pagos_online'], 2) }}</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="card bg-primary text-white">
                                 <div class="card-body">
                                     <h5 class="text-white">Pagos Efectivo</h5>
@@ -56,7 +48,6 @@
                         </select>
                         <select name="metodo" class="form-select w-25">
                             <option value="">Todos los Métodos</option>
-                            <option value="stripe" {{ request('metodo') == 'stripe' ? 'selected' : '' }}>Stripe</option>
                             <option value="efectivo" {{ request('metodo') == 'efectivo' ? 'selected' : '' }}>Efectivo</option>
                             <option value="tarjeta_presencial" {{ request('metodo') == 'tarjeta_presencial' ? 'selected' : '' }}>Tarjeta Presencial</option>
                         </select>
@@ -85,7 +76,7 @@
                                         <td>{{ $pago->cita->cliente->nombre ?? 'N/A' }}</td>
                                         <td>#{{ $pago->cita->id }} - {{ $pago->cita->servicio->nombre ?? 'N/A' }}</td>
                                         <td>${{ number_format($pago->monto, 2) }}</td>
-                                        <td><span class="badge bg-secondary">{{ strtoupper($pago->metodo) }}</span></td>
+                                        <td><span class="badge bg-secondary">{{ $pago->metodo === 'stripe' ? 'ONLINE' : strtoupper($pago->metodo) }}</span></td>
                                         <td>
                                             @if($pago->estado_pago === 'completado')
                                                 <span class="badge bg-success">Completado</span>
