@@ -156,8 +156,8 @@
                                 @endphp
                                 <td class="{{ $statusClass }} p-2 position-relative align-top cell-hover" 
                                     style="height:95px; border:1px solid #f1f3f5;"
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#detailModal" 
+                                    data-coreui-toggle="modal" 
+                                    data-coreui-target="#detailModal" 
                                     data-detail='@json($detail)'
                                     data-hora="{{ sprintf('%02d:00', $hora) }}"
                                     data-fecha="{{ $fechaActual }}"
@@ -181,7 +181,7 @@
         <div class="modal-content border-0 shadow-lg" style="border-radius:20px;">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title fw-bold" id="modalTitle">Detalle de Turno</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="modalBody">
@@ -189,7 +189,7 @@
                 </div>
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-light rounded-pill px-4" data-coreui-dismiss="modal">Cerrar</button>
                 <div id="modalActions"></div>
             </div>
         </div>

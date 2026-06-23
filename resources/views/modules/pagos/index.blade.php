@@ -99,7 +99,7 @@
                                                     <i class="fa fa-file-invoice"></i> Ver Factura
                                                 </a>
                                             @else
-                                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalManual-{{ $pago->cita->id }}">
+                                                <button class="btn btn-sm btn-primary" data-coreui-toggle="modal" data-coreui-target="#modalManual-{{ $pago->cita->id }}">
                                                     <i class="fa fa-money-bill"></i> Cobrar
                                                 </button>
                                                 <!-- Modal Cobro Manual -->
@@ -108,7 +108,7 @@
                                                         <div class="modal-content">
                                                             <div class="modal-header">
                                                                 <h5 class="modal-title">Cobrar Cita #{{ $pago->cita->id }}</h5>
-                                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                <button type="button" class="btn-close" data-coreui-dismiss="modal"></button>
                                                             </div>
                                                             <form action="{{ route('pagos.manual', $pago->cita->id) }}" method="POST">
                                                                 @csrf
@@ -126,7 +126,7 @@
                                                                     </div>
                                                                 </div>
                                                                 <div class="modal-footer">
-                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                                    <button type="button" class="btn btn-secondary" data-coreui-dismiss="modal">Cancelar</button>
                                                                     <button type="submit" class="btn btn-primary">Registrar Pago</button>
                                                                 </div>
                                                             </form>
