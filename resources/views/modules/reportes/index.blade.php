@@ -343,7 +343,7 @@
                 🎤 Reporte por Voz
             </button>
             <a href="{{ route('reportes.pdf', 'general') }}?fecha_inicio={{ $fechaInicio->toDateString() }}&fecha_fin={{ $fechaFin->toDateString() }}"
-               class="btn-export-pdf">
+               class="btn-export-pdf" target="_blank">
                 📄 PDF General
             </a>
         </div>
@@ -538,7 +538,7 @@
             <h5>📋 Detalle de Servicios Realizados</h5>
             <div class="d-flex gap-2">
                 <a href="{{ route('reportes.pdf', 'ventas') }}?{{ http_build_query(request()->except('_token')) }}"
-                   class="btn-export-pdf">📄 PDF</a>
+                   class="btn-export-pdf" target="_blank">📄 PDF</a>
                 <a href="{{ route('reportes.excel', 'ventas') }}?{{ http_build_query(request()->except('_token')) }}"
                    class="btn-export-excel">📊 Excel</a>
             </div>
@@ -635,7 +635,7 @@
                     <h5>👥 Lista de Clientes</h5>
                     <div class="d-flex gap-2">
                         <a href="{{ route('reportes.pdf', 'clientes') }}?{{ http_build_query(request()->except('_token')) }}"
-                           class="btn-export-pdf">📄 PDF</a>
+                           class="btn-export-pdf" target="_blank">📄 PDF</a>
                         <a href="{{ route('reportes.excel', 'clientes') }}?{{ http_build_query(request()->except('_token')) }}"
                            class="btn-export-excel">📊 Excel</a>
                     </div>
@@ -750,7 +750,7 @@
         <div class="seccion-header">
             <h5>📦 Inventario Completo</h5>
             <div class="d-flex gap-2">
-                <a href="{{ route('reportes.pdf', 'inventario') }}" class="btn-export-pdf">📄 PDF</a>
+                <a href="{{ route('reportes.pdf', 'inventario') }}" class="btn-export-pdf" target="_blank">📄 PDF</a>
                 <a href="{{ route('reportes.excel', 'inventario') }}" class="btn-export-excel">📊 Excel</a>
             </div>
         </div>
@@ -855,7 +855,7 @@
             <h5>📅 Historial de Citas</h5>
             <div class="d-flex gap-2">
                 <a href="{{ route('reportes.pdf', 'servicios') }}?{{ http_build_query(request()->except('_token')) }}"
-                   class="btn-export-pdf">📄 PDF</a>
+                   class="btn-export-pdf" target="_blank">📄 PDF</a>
                 <a href="{{ route('reportes.excel', 'servicios') }}?{{ http_build_query(request()->except('_token')) }}"
                    class="btn-export-excel">📊 Excel</a>
             </div>
@@ -1023,7 +1023,7 @@
                     <h5>🎁 Promociones</h5>
                     <div class="d-flex gap-2">
                         <a href="{{ route('reportes.pdf', 'promociones') }}?{{ http_build_query(request()->except('_token')) }}"
-                           class="btn-export-pdf">📄 PDF</a>
+                           class="btn-export-pdf" target="_blank">📄 PDF</a>
                         <a href="{{ route('reportes.excel', 'promociones') }}?{{ http_build_query(request()->except('_token')) }}"
                            class="btn-export-excel">📊 Excel</a>
                     </div>

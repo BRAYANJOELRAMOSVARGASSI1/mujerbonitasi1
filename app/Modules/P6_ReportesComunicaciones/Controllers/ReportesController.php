@@ -154,7 +154,7 @@ class ReportesController extends Controller
 
         $nombreArchivo = "reporte_{$tipo}_" . now()->format('Y-m-d_His') . '.pdf';
 
-        return $pdf->download($nombreArchivo);
+        return $pdf->stream($nombreArchivo);
     }
 
     // ─────────────────────────────────────────────────────────
