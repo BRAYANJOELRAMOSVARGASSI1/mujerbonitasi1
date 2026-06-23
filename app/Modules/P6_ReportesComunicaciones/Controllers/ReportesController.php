@@ -523,7 +523,7 @@ class ReportesController extends Controller
             return response()->json(['error' => 'Debes enviar texto o un archivo de audio.'], 422);
         }
 
-        $groqApiKey = env('GROQ_API_KEY');
+        $groqApiKey = config('services.groq.key');
         if (!$groqApiKey) {
             return response()->json(['error' => 'API Key de Groq no configurada.'], 500);
         }
